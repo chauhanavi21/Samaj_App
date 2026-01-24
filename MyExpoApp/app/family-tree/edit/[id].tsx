@@ -150,7 +150,7 @@ export default function EditFamilyTreeScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Person Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 Person Information</Text>
+          <Text style={styles.sectionTitle}>Person Information</Text>
           
           <Text style={styles.label}>Name *</Text>
           <TextInput
@@ -180,7 +180,7 @@ export default function EditFamilyTreeScreen() {
 
         {/* Spouse Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💑 Spouse Information</Text>
+          <Text style={styles.sectionTitle}>Spouse Information</Text>
           
           <Text style={styles.label}>Spouse Name</Text>
           <TextInput
@@ -202,7 +202,7 @@ export default function EditFamilyTreeScreen() {
 
         {/* Parents Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👨‍👩‍👦 Parents Information</Text>
+          <Text style={styles.sectionTitle}>Parents Information</Text>
           
           <Text style={styles.label}>Father's Name</Text>
           <TextInput
@@ -242,7 +242,7 @@ export default function EditFamilyTreeScreen() {
         {/* Children Information */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>👶 Children</Text>
+            <Text style={styles.sectionTitle}>Children</Text>
             <TouchableOpacity onPress={addChild} style={styles.addChildButton}>
               <IconSymbol name="plus.circle.fill" size={24} color="#007AFF" />
               <Text style={styles.addChildText}>Add Child</Text>
@@ -297,7 +297,7 @@ export default function EditFamilyTreeScreen() {
 
         {/* Additional Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📍 Additional Information</Text>
+          <Text style={styles.sectionTitle}>Additional Information</Text>
           
           <Text style={styles.label}>Address</Text>
           <TextInput

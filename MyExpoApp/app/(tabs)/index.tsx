@@ -1,13 +1,16 @@
 import { Image } from 'expo-image';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
   return (
     <View style={styles.container}>
       <AppHeader showBack={false} />
@@ -77,12 +80,22 @@ export default function HomeScreen() {
         <Text style={styles.ctaDescription}>
           Join hundreds of active members in Thali who are working towards a better tomorrow.
         </Text>
-        <Link href="/contact" asChild>
-          <TouchableOpacity style={styles.becomeMemberButton}>
-            <Text style={styles.becomeMemberText}>Become a Member</Text>
-            <MaterialIcons name="arrow-forward" size={20} color="#1A3A69" />
-          </TouchableOpacity>
-        </Link>
+        <TouchableOpacity 
+          style={styles.becomeMemberButton}
+          onPress={() => {
+            if (isAuthenticated) {
+              Alert.alert(
+                'Already a Member',
+                'You are already a member of Thali Yuva Sangh!',
+                [{ text: 'OK' }]
+              );
+            } else {
+              router.push('/signup');
+            }
+          }}>
+          <Text style={styles.becomeMemberText}>Become a Member</Text>
+          <MaterialIcons name="arrow-forward" size={20} color="#1A3A69" />
+        </TouchableOpacity>
       </View>
 
       {/* Footer */}

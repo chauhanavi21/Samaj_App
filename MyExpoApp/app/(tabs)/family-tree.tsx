@@ -12,6 +12,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { familyTreeAPI } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 interface Child {
   name: string;
@@ -92,42 +93,53 @@ export default function FamilyTreeScreen() {
   const renderEntry = ({ item }: { item: FamilyTreeEntry }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.personName}>👤 {item.personName}</Text>
+        <Text style={styles.personName}>{item.personName}</Text>
         <View style={styles.cardActions}>
           <TouchableOpacity
             onPress={() => router.push(`/family-tree/edit/${item._id}`)}
             style={styles.iconButton}>
-            <IconSymbol name="pencil" size={20} color="#007AFF" />
+            <IconSymbol name="pencil" size={22} color="#007AFF" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleDelete(item._id, item.personName)}
             style={styles.iconButton}>
-            <IconSymbol name="trash" size={20} color="#FF3B30" />
+            <IconSymbol name="trash" size={22} color="#FF3B30" />
           </TouchableOpacity>
         </View>
       </View>
 
       {item.personPhone && (
-        <Text style={styles.detailText}>📞 {item.personPhone}</Text>
+        <Text style={styles.detailText}>Phone: {item.personPhone}</Text>
       )}
 
-      <View style={styles.divider} />
+      {(item.spouseName || item.fatherName || item.motherName || (item.children && item.children.length > 0)) && (
+        <View style={styles.divider} />
+      )}
 
       {item.spouseName && (
-        <Text style={styles.detailText}>💑 Spouse: {item.spouseName}</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Spouse:</Text>
+          <Text style={styles.value}>{item.spouseName}</Text>
+        </View>
       )}
 
       {item.fatherName && (
-        <Text style={styles.detailText}>👨 Father: {item.fatherName}</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Father:</Text>
+          <Text style={styles.value}>{item.fatherName}</Text>
+        </View>
       )}
 
       {item.motherName && (
-        <Text style={styles.detailText}>👩 Mother: {item.motherName}</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Mother:</Text>
+          <Text style={styles.value}>{item.motherName}</Text>
+        </View>
       )}
 
       {item.children && item.children.length > 0 && (
         <View style={styles.childrenSection}>
-          <Text style={styles.sectionTitle}>👶 Children:</Text>
+          <Text style={styles.sectionTitle}>Children</Text>
           {item.children.map((child, index) => (
             <Text key={index} style={styles.childText}>
               • {child.name}
@@ -138,7 +150,7 @@ export default function FamilyTreeScreen() {
       )}
 
       {item.address && (
-        <Text style={styles.addressText}>📍 {item.address}</Text>
+        <Text style={styles.addressText}>{item.address}</Text>
       )}
     </View>
   );
@@ -166,7 +178,6 @@ export default function FamilyTreeScreen() {
 
       {entries.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🌳</Text>
           <Text style={styles.emptyTitle}>No Family Entries Yet</Text>
           <Text style={styles.emptyText}>
             Start building your family tree by adding your first entry
@@ -212,14 +223,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
+    paddingHorizontal: padding.md,
+    paddingVertical: hp(2),
+    paddingTop: hp(7),
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: fontScale(28),
     fontWeight: 'bold',
     color: '#000',
   },
@@ -227,112 +239,131 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
+    borderRadius: wp(5),
+    gap: wp(1.5),
   },
   addButtonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: fontScale(16),
     fontWeight: '600',
   },
   listContainer: {
-    padding: 16,
+    padding: padding.md,
   },
   card: {
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: wp(4),
+    padding: padding.md,
+    marginBottom: hp(2),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: wp(2),
     elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: hp(1.5),
   },
   personName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: fontScale(24),
+    fontWeight: '700',
+    color: '#1A3A69',
     flex: 1,
+    letterSpacing: 0.3,
   },
   cardActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: wp(4),
   },
   iconButton: {
-    padding: 4,
+    padding: wp(1.5),
   },
   divider: {
     height: 1,
     backgroundColor: '#E5E5E5',
-    marginVertical: 12,
+    marginVertical: hp(2),
   },
   detailText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 6,
+    fontSize: fontScale(16),
+    color: '#666',
+    marginBottom: hp(1),
+    lineHeight: fontScale(22),
   },
-  sectionTitle: {
-    fontSize: 16,
+  infoRow: {
+    flexDirection: 'row',
+    marginBottom: hp(1.2),
+    flexWrap: 'wrap',
+  },
+  label: {
+    fontSize: fontScale(17),
     fontWeight: '600',
     color: '#333',
-    marginTop: 8,
-    marginBottom: 4,
+    marginRight: wp(2),
+    minWidth: wp(20),
+  },
+  value: {
+    fontSize: fontScale(17),
+    color: '#666',
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: fontScale(18),
+    fontWeight: '600',
+    color: '#333',
+    marginTop: hp(1),
+    marginBottom: hp(1),
   },
   childrenSection: {
-    marginTop: 8,
+    marginTop: hp(1.5),
   },
   childText: {
-    fontSize: 15,
+    fontSize: fontScale(16),
     color: '#666',
-    marginLeft: 8,
-    marginBottom: 3,
+    marginLeft: wp(2.5),
+    marginBottom: hp(0.8),
+    lineHeight: fontScale(22),
   },
   addressText: {
-    fontSize: 15,
+    fontSize: fontScale(16),
     color: '#666',
-    marginTop: 8,
+    marginTop: hp(1.5),
     fontStyle: 'italic',
+    lineHeight: fontScale(22),
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-  },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: 20,
+    padding: padding.lg,
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 10,
+    fontSize: fontScale(26),
+    fontWeight: '700',
+    color: '#1A3A69',
+    marginBottom: hp(1.5),
+    textAlign: 'center',
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: '#666',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: hp(4),
+    lineHeight: fontScale(24),
   },
   emptyButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingHorizontal: wp(8),
+    paddingVertical: hp(1.5),
+    borderRadius: wp(6),
   },
   emptyButtonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: fontScale(16),
     fontWeight: '600',
   },
 });

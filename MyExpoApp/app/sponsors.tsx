@@ -56,7 +56,7 @@ export default function SponsorsScreen() {
                 <Text style={styles.sponsorName} numberOfLines={2}>{sponsor.name}</Text>
               </View>
               <View style={styles.tableCellAmount}>
-                <Text style={styles.amount}>{sponsor.amount}</Text>
+                <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>{sponsor.amount}</Text>
               </View>
               <View style={styles.tableCellPhone}>
                 <Pressable onPress={() => handlePhone(sponsor.phone)}>
@@ -126,18 +126,18 @@ const styles = StyleSheet.create({
     paddingRight: wp(2),
   },
   headerCellAmount: {
-    flex: 1.2,
+    flex: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
     gap: wp(1),
-    paddingHorizontal: wp(1.5),
+    paddingHorizontal: wp(1),
   },
   headerCellPhone: {
-    flex: 1.8,
+    flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: wp(1.5),
-    paddingLeft: wp(2),
+    paddingLeft: wp(1),
   },
   headerText: {
     fontSize: fontScale(14),
@@ -164,14 +164,15 @@ const styles = StyleSheet.create({
     paddingRight: wp(2),
   },
   tableCellAmount: {
-    flex: 1.2,
+    flex: 1.5,
     justifyContent: 'center',
-    paddingHorizontal: wp(1.5),
+    alignItems: 'flex-start',
+    paddingHorizontal: wp(1),
   },
   tableCellPhone: {
-    flex: 1.8,
+    flex: 2,
     justifyContent: 'center',
-    paddingLeft: wp(2),
+    paddingLeft: wp(1),
   },
   sponsorName: {
     fontSize: fontScale(15),
@@ -183,6 +184,7 @@ const styles = StyleSheet.create({
     fontSize: fontScale(15),
     fontWeight: '600',
     color: '#FF8C00',
+    flexWrap: 'wrap',
   },
   phoneNumber: {
     fontSize: fontScale(14),
