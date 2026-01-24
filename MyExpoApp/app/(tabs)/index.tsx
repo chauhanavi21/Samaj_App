@@ -146,6 +146,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: hp(2),
     letterSpacing: 0.5,
+    width: '100%',
+    alignSelf: 'center',
   },
   heroDescription: {
     fontSize: fontScale(18),
