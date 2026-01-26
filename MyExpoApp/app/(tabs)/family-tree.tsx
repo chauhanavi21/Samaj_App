@@ -31,6 +31,12 @@ interface FamilyTreeEntry {
   children: Child[];
   address?: string;
   createdAt: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+    memberId?: string;
+  };
 }
 
 export default function FamilyTreeScreen() {
@@ -133,6 +139,10 @@ export default function FamilyTreeScreen() {
 
       {item.personPhone && (
         <Text style={styles.detailText}>Phone: {item.personPhone}</Text>
+      )}
+
+      {item.createdBy?.memberId && (
+        <Text style={styles.detailText}>Member ID: {item.createdBy.memberId}</Text>
       )}
 
       {(item.spouseName || item.fatherName || item.motherName || (item.children && item.children.length > 0)) && (
