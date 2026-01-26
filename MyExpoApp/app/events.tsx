@@ -84,9 +84,6 @@ export default function EventsScreen() {
                 </View>
               </View>
               <Text style={styles.eventDescription}>{event.description}</Text>
-              <TouchableOpacity style={styles.registerButton}>
-                <Text style={styles.registerButtonText}>Register Now</Text>
-              </TouchableOpacity>
             </View>
           ))}
         </View>
@@ -175,18 +172,5 @@ const styles = StyleSheet.create({
     fontSize: fontScale(16),
     color: '#666666',
     lineHeight: fontScale(24),
-    marginBottom: hp(2.5),
-  },
-  registerButton: {
-    backgroundColor: '#1A3A69',
-    paddingVertical: hp(1.75),
-    paddingHorizontal: padding.lg,
-    borderRadius: wp(2),
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    color: '#FFFFFF',
-    fontSize: fontScale(16),
-    fontWeight: '700',
   },
 });

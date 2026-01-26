@@ -29,8 +29,8 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     // Validation
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!name.trim() || !email.trim() || !password.trim() || !memberId.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields including Member ID');
       return;
     }
 
@@ -52,7 +52,7 @@ export default function SignupScreen() {
     console.log('Member ID:', memberId);
     
     try {
-      await signup(name.trim(), email.trim(), password, phone.trim() || undefined, memberId.trim() || undefined);
+      await signup(name.trim(), email.trim(), password, phone.trim() || undefined, memberId.trim());
       console.log('✅ Signup successful, showing success alert');
       Alert.alert('Success', 'Account created successfully!', [
         {
@@ -125,7 +125,7 @@ export default function SignupScreen() {
               <MaterialIcons name="badge" size={20} color="#666" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Member ID (Optional)"
+                placeholder="Member ID *"
                 placeholderTextColor="#999"
                 value={memberId}
                 onChangeText={setMemberId}

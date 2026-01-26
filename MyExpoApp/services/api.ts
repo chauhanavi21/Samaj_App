@@ -89,7 +89,7 @@ api.interceptors.response.use(
 
 // Auth API functions
 export const authAPI = {
-  signup: async (name: string, email: string, password: string, phone?: string, memberId?: string) => {
+  signup: async (name: string, email: string, password: string, phone: string | undefined, memberId: string) => {
     const response = await api.post('/auth/signup', {
       name,
       email,
