@@ -1,14 +1,18 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
+import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 export default function AboutUsScreen() {
   return (
-    <View style={styles.container}>
-      <AppHeader showBack={true} />
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* About Us Title */}
         <View style={styles.titleSection}>
           <Text style={styles.mainTitle}>About Us</Text>
@@ -67,6 +71,7 @@ export default function AboutUsScreen() {
         <AppFooter />
       </ScrollView>
     </View>
+    </>
   );
 }
 
@@ -100,7 +105,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mainTitle: {
-    fontSize: 36,
+    fontSize: fontScale(32),
     fontWeight: '700',
     color: '#1A3A69',
     marginBottom: 12,

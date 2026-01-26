@@ -1,24 +1,29 @@
-import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Modal, Pressable, Linking } from 'react-native';
-import { Link, router } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Pressable, Linking, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Stack } from 'expo-router';
+import { AppHeader } from '@/components/app-header';
+import { AppFooter } from '@/components/app-footer';
 import { useState } from 'react';
+import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 export default function ContactScreen() {
-  const [menuVisible, setMenuVisible] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
   const handleSubmit = () => {
-    // Handle form submission here
+    if (!firstName || !email || !message) {
+      Alert.alert('Missing Fields', 'Please fill in all required fields');
+      return;
+    }
+    
     console.log('Form submitted:', { firstName, lastName, email, message });
-    // Reset form
     setFirstName('');
     setLastName('');
     setEmail('');
     setMessage('');
-    alert('Thank you for your message! We will get back to you soon.');
+    Alert.alert('Success', 'Thank you for your message! We will get back to you soon.');
   };
 
   const handleContact = (type: string, value: string) => {
@@ -30,19 +35,12 @@ export default function ContactScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color="#1A3A69" />
-        </TouchableOpacity>
-        <Text style={styles.headerLogo}>THALI YUVA SANGH</Text>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <MaterialIcons name="menu" size={24} color="#1A3A69" />
-        </TouchableOpacity>
-      </View>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.mainTitle}>Contact Us</Text>
@@ -56,7 +54,7 @@ export default function ContactScreen() {
           <Text style={styles.formTitle}>Send us a message</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>First Name</Text>
+            <Text style={styles.label}>First Name *</Text>
             <TextInput
               style={styles.input}
               placeholder="John"
@@ -78,7 +76,7 @@ export default function ContactScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>Email *</Text>
             <TextInput
               style={styles.input}
               placeholder="john@example.com"
@@ -91,7 +89,7 @@ export default function ContactScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Message</Text>
+            <Text style={styles.label}>Message *</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Tell us how you'd like to help..."
@@ -132,71 +130,12 @@ export default function ContactScreen() {
             <Text style={styles.contactText}>contact@thaliyuvasangh.org</Text>
           </Pressable>
         </View>
-      </ScrollView>
 
-      {/* Navigation Menu Modal */}
-      <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setMenuVisible(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
-          <View style={styles.menuContainer}>
-            <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>Menu</Text>
-              <TouchableOpacity onPress={() => setMenuVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#1A3A69" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.menuItems}>
-              <Link href="/(tabs)" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Home</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/about-us" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>About</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/committee" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Committee</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/sponsors" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Sponsors</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/temples" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Temples</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/events" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Events</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/gallery" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Gallery</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/contact" asChild>
-                <TouchableOpacity style={styles.menuItemActive} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemTextActive}>Contact</Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
-            <TouchableOpacity style={styles.joinUsButton}>
-              <Text style={styles.joinUsText}>Join Us</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
+        {/* Footer */}
+        <AppFooter />
+      </ScrollView>
     </View>
+    </>
   );
 }
 
@@ -205,179 +144,102 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 50,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  headerLogo: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1A3A69',
-    letterSpacing: 1,
-  },
   scrollView: {
     flex: 1,
   },
   titleSection: {
-    padding: 32,
+    padding: padding.lg,
     alignItems: 'center',
   },
   mainTitle: {
-    fontSize: 36,
+    fontSize: fontScale(32),
     fontWeight: '700',
     color: '#1A3A69',
-    marginBottom: 12,
+    marginBottom: hp(1.5),
     textAlign: 'center',
   },
   titleDescription: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: '#666666',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: fontScale(24),
   },
   formCard: {
     backgroundColor: '#FFFFFF',
-    margin: 20,
-    padding: 24,
-    borderRadius: 12,
+    margin: padding.md,
+    padding: padding.lg,
+    borderRadius: wp(3),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: wp(2),
     elevation: 3,
   },
   formTitle: {
-    fontSize: 24,
+    fontSize: fontScale(24),
     fontWeight: '700',
     color: '#1A3A69',
-    marginBottom: 24,
+    marginBottom: hp(3),
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: hp(2.5),
   },
   label: {
-    fontSize: 15,
+    fontSize: fontScale(15),
     fontWeight: '600',
     color: '#333333',
-    marginBottom: 8,
+    marginBottom: hp(1),
   },
   input: {
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    borderRadius: wp(2),
+    paddingHorizontal: padding.sm,
+    paddingVertical: hp(1.5),
+    fontSize: fontScale(16),
     color: '#333333',
     backgroundColor: '#FFFFFF',
   },
   textArea: {
-    height: 120,
-    paddingTop: 12,
+    height: hp(15),
+    paddingTop: hp(1.5),
   },
   submitButton: {
     backgroundColor: '#FF8C00',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: hp(2),
+    paddingHorizontal: padding.lg,
+    borderRadius: wp(2),
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: hp(1),
   },
   submitButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: fontScale(18),
     fontWeight: '700',
   },
   contactInfoSection: {
     backgroundColor: '#1A3A69',
-    padding: 32,
-    marginTop: 20,
+    padding: padding.lg,
+    marginTop: hp(2.5),
   },
   contactInfoTitle: {
-    fontSize: 24,
+    fontSize: fontScale(24),
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 24,
+    marginBottom: hp(3),
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 16,
-    marginBottom: 20,
+    gap: wp(4),
+    marginBottom: hp(2.5),
   },
   contactDetails: {
     flex: 1,
   },
   contactText: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: '#FFFFFF',
-    lineHeight: 24,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start',
-  },
-  menuContainer: {
-    backgroundColor: '#F5F5F0',
-    width: '80%',
-    height: '100%',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  menuTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A3A69',
-  },
-  menuItems: {
-    gap: 8,
-    marginBottom: 24,
-  },
-  menuItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  menuItemActive: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFF4E6',
-    borderRadius: 8,
-  },
-  menuItemText: {
-    fontSize: 18,
-    color: '#333333',
-  },
-  menuItemTextActive: {
-    fontSize: 18,
-    color: '#1A3A69',
-    fontWeight: '600',
-  },
-  joinUsButton: {
-    backgroundColor: '#FF8C00',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: 40,
-  },
-  joinUsText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
+    lineHeight: fontScale(24),
   },
 });

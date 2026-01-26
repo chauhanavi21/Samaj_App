@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/app-header';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
@@ -40,8 +40,10 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <AppHeader showBack={true} />
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.title}>Welcome Back</Text>
@@ -107,6 +109,7 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
     </View>
+    </>
   );
 }
 

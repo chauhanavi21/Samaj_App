@@ -9,7 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { familyTreeAPI } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -129,16 +129,21 @@ export default function EditFamilyTreeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading entry...</Text>
-      </View>
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading entry...</Text>
+        </View>
+      </>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <IconSymbol name="chevron.left" size={24} color="#007AFF" />
           <Text style={styles.backText}>Back</Text>
@@ -332,6 +337,7 @@ export default function EditFamilyTreeScreen() {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </>
   );
 }
 

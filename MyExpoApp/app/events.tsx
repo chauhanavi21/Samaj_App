@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Linking } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
@@ -47,9 +48,11 @@ export default function EventsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <AppHeader showBack={true} />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Banner */}
         <View style={styles.heroBanner}>
           <Text style={styles.heroTitle}>Upcoming Events</Text>
@@ -92,6 +95,7 @@ export default function EventsScreen() {
         <AppFooter />
       </ScrollView>
     </View>
+    </>
   );
 }
 

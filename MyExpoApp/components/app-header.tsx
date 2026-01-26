@@ -71,6 +71,11 @@ export function AppHeader({ showBack = true }: { showBack?: boolean }) {
                   <Text style={styles.menuItemText}>Sponsors</Text>
                 </TouchableOpacity>
               </Link>
+              <Link href="/offers" asChild>
+                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+                  <Text style={styles.menuItemText}>Offers</Text>
+                </TouchableOpacity>
+              </Link>
               <Link href="/temples" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Temples</Text>

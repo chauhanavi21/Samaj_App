@@ -1,11 +1,11 @@
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Modal, Pressable, Linking } from 'react-native';
-import { Link, router } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Linking } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useState } from 'react';
+import { Stack } from 'expo-router';
+import { AppHeader } from '@/components/app-header';
+import { AppFooter } from '@/components/app-footer';
+import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 export default function TemplesScreen() {
-  const [menuVisible, setMenuVisible] = useState(false);
-
   const handleGoogleMaps = (location: string) => {
     const encodedLocation = encodeURIComponent(location);
     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodedLocation}`).catch((err) => 
@@ -37,19 +37,12 @@ export default function TemplesScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color="#1A3A69" />
-        </TouchableOpacity>
-        <Text style={styles.headerLogo}>THALI YUVA SANGH</Text>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <MaterialIcons name="menu" size={24} color="#1A3A69" />
-        </TouchableOpacity>
-      </View>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.mainTitle}>Spiritual Places in Thali</Text>
@@ -82,67 +75,12 @@ export default function TemplesScreen() {
             </View>
           ))}
         </View>
-      </ScrollView>
 
-      {/* Navigation Menu Modal */}
-      <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setMenuVisible(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
-          <View style={styles.menuContainer}>
-            <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>Menu</Text>
-              <TouchableOpacity onPress={() => setMenuVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#1A3A69" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.menuItems}>
-              <Link href="/(tabs)" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Home</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/about-us" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>About</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/committee" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Committee</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/sponsors" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Sponsors</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/temples" asChild>
-                <TouchableOpacity style={styles.menuItemActive} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemTextActive}>Temples</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/events" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Events</Text>
-                </TouchableOpacity>
-              </Link>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                <Text style={styles.menuItemText}>Gallery</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                <Text style={styles.menuItemText}>Contact</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.joinUsButton}>
-              <Text style={styles.joinUsText}>Join Us</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
+        {/* Footer */}
+        <AppFooter />
+      </ScrollView>
     </View>
+    </>
   );
 }
 
@@ -151,88 +89,71 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 50,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  headerLogo: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1A3A69',
-    letterSpacing: 1,
-  },
   scrollView: {
     flex: 1,
   },
   titleSection: {
-    padding: 32,
+    padding: padding.lg,
     alignItems: 'center',
   },
   mainTitle: {
-    fontSize: 32,
+    fontSize: fontScale(32),
     fontWeight: '700',
     color: '#1A3A69',
-    marginBottom: 12,
+    marginBottom: hp(1.5),
     textAlign: 'center',
   },
   titleDescription: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: '#666666',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: fontScale(24),
   },
   templesSection: {
-    padding: 20,
-    gap: 20,
+    padding: padding.md,
+    gap: hp(2.5),
   },
   templeCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: wp(3),
+    padding: padding.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: wp(2),
     elevation: 3,
   },
   templeName: {
-    fontSize: 24,
+    fontSize: fontScale(24),
     fontWeight: '700',
     color: '#1A3A69',
-    marginBottom: 12,
+    marginBottom: hp(1.5),
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
+    gap: wp(2),
+    marginBottom: hp(2),
   },
   addressText: {
-    fontSize: 15,
+    fontSize: fontScale(15),
     color: '#666666',
     flex: 1,
+    lineHeight: fontScale(22),
   },
   mapContainer: {
-    position: 'relative',
-    marginTop: 8,
+    marginTop: hp(1),
   },
   mapPlaceholder: {
-    height: 200,
+    height: hp(25),
     backgroundColor: '#E0E0E0',
-    borderRadius: 8,
+    borderRadius: wp(2),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp(1.5),
   },
   mapPlaceholderText: {
-    fontSize: 14,
+    fontSize: fontScale(14),
     color: '#999999',
   },
   googleMapsButton: {
@@ -242,74 +163,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#1A3A69',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: hp(1.5),
+    paddingHorizontal: padding.md,
+    borderRadius: wp(2),
+    gap: wp(2),
   },
   googleMapsText: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     fontWeight: '600',
     color: '#1A3A69',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start',
-  },
-  menuContainer: {
-    backgroundColor: '#F5F5F0',
-    width: '80%',
-    height: '100%',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  menuTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A3A69',
-  },
-  menuItems: {
-    gap: 8,
-    marginBottom: 24,
-  },
-  menuItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  menuItemActive: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFF4E6',
-    borderRadius: 8,
-  },
-  menuItemText: {
-    fontSize: 18,
-    color: '#333333',
-  },
-  menuItemTextActive: {
-    fontSize: 18,
-    color: '#1A3A69',
-    fontWeight: '600',
-  },
-  joinUsButton: {
-    backgroundColor: '#FF8C00',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: 40,
-  },
-  joinUsText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
   },
 });

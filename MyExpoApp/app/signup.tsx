@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/app-header';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
@@ -19,6 +19,7 @@ export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [memberId, setMemberId] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,9 +49,10 @@ export default function SignupScreen() {
     console.log('Name:', name);
     console.log('Email:', email);
     console.log('Phone:', phone);
+    console.log('Member ID:', memberId);
     
     try {
-      await signup(name.trim(), email.trim(), password, phone.trim() || undefined);
+      await signup(name.trim(), email.trim(), password, phone.trim() || undefined, memberId.trim() || undefined);
       console.log('✅ Signup successful, showing success alert');
       Alert.alert('Success', 'Account created successfully!', [
         {
@@ -71,8 +73,10 @@ export default function SignupScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <AppHeader showBack={true} />
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.title}>Create Account</Text>
@@ -114,6 +118,18 @@ export default function SignupScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="badge" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Member ID (Optional)"
+                placeholderTextColor="#999"
+                value={memberId}
+                onChangeText={setMemberId}
+                autoCapitalize="characters"
               />
             </View>
 
@@ -185,6 +201,7 @@ export default function SignupScreen() {
         </View>
       </ScrollView>
     </View>
+    </>
   );
 }
 

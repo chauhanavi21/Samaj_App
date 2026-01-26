@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { familyTreeAPI } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
@@ -34,6 +35,7 @@ interface FamilyTreeEntry {
 
 export default function FamilyTreeScreen() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [entries, setEntries] = useState<FamilyTreeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,12 +55,33 @@ export default function FamilyTreeScreen() {
     }
   };
 
-  // Fetch on mount and when screen comes into focus
+  // Check authentication and redirect if not logged in
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      fetchEntries();
-    }, [])
+      if (!authLoading && !isAuthenticated) {
+        Alert.alert(
+          'Sign Up Required',
+          'For Family Tree you need to sign up first. After signing up, your information will automatically appear in the Family Tree.',
+          [
+            {
+              text: 'Sign Up',
+              onPress: () => router.push('/signup'),
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => router.push('/(tabs)'),
+            },
+          ]
+        );
+        return;
+      }
+      
+      if (isAuthenticated) {
+        setLoading(true);
+        fetchEntries();
+      }
+    }, [isAuthenticated, authLoading])
   );
 
   const onRefresh = () => {
@@ -155,11 +178,22 @@ export default function FamilyTreeScreen() {
     </View>
   );
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading family tree...</Text>
+        <Text style={styles.loadingText}>
+          {authLoading ? 'Checking authentication...' : 'Loading family tree...'}
+        </Text>
+      </View>
+    );
+  }
+
+  // If not authenticated, show empty view (alert will handle redirect)
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.loadingText}>Redirecting to signup...</Text>
       </View>
     );
   }

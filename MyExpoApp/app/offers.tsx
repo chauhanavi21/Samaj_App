@@ -4,8 +4,10 @@ import {
   View,
   Text,
   ScrollView,
-  RefreshControl,
 } from 'react-native';
+import { Stack } from 'expo-router';
+import { AppHeader } from '@/components/app-header';
+import { AppFooter } from '@/components/app-footer';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 interface Offer {
@@ -19,8 +21,6 @@ interface Offer {
 }
 
 export default function OffersScreen() {
-  const [refreshing, setRefreshing] = React.useState(false);
-
   const offers: Offer[] = [
     {
       id: '1',
@@ -51,25 +51,15 @@ export default function OffersScreen() {
     },
   ];
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  };
-
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Special Offers</Text>
-      </View>
-
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
+      
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }>
+        showsVerticalScrollIndicator={false}>
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.pageTitle}>Special Offers</Text>
@@ -114,8 +104,12 @@ export default function OffersScreen() {
             More exclusive offers coming soon for our members!
           </Text>
         </View>
+
+        {/* App Footer */}
+        <AppFooter />
       </ScrollView>
     </View>
+    </>
   );
 }
 
@@ -124,24 +118,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
-  header: {
-    paddingHorizontal: padding.md,
-    paddingVertical: hp(2),
-    paddingTop: hp(7),
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  headerTitle: {
-    fontSize: fontScale(28),
-    fontWeight: 'bold',
-    color: '#000',
-  },
   scrollView: {
     flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: hp(4),
   },
   titleSection: {
     padding: padding.lg,

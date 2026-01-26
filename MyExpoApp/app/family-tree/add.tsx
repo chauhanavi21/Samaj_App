@@ -9,7 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { familyTreeAPI } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -94,8 +94,10 @@ export default function AddFamilyTreeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <IconSymbol name="chevron.left" size={24} color="#007AFF" />
           <Text style={styles.backText}>Back</Text>
@@ -289,6 +291,7 @@ export default function AddFamilyTreeScreen() {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </>
   );
 }
 

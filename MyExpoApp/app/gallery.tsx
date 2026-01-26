@@ -1,13 +1,11 @@
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Modal, Pressable, Image, Dimensions } from 'react-native';
-import { Link, router } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useState } from 'react';
-
-const { width } = Dimensions.get('window');
+import { Stack } from 'expo-router';
+import { AppHeader } from '@/components/app-header';
+import { AppFooter } from '@/components/app-footer';
+import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 export default function GalleryScreen() {
-  const [menuVisible, setMenuVisible] = useState(false);
-
   // Placeholder images - in a real app, these would be actual image URIs
   const galleryImages = [
     { id: 1, title: 'Community Gathering', color: '#A1CEDC' },
@@ -19,19 +17,12 @@ export default function GalleryScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color="#1A3A69" />
-        </TouchableOpacity>
-        <Text style={styles.headerLogo}>THALI YUVA SANGH</Text>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <MaterialIcons name="menu" size={24} color="#1A3A69" />
-        </TouchableOpacity>
-      </View>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.mainTitle}>Our Gallery</Text>
@@ -59,69 +50,12 @@ export default function GalleryScreen() {
             </View>
           ))}
         </View>
-      </ScrollView>
 
-      {/* Navigation Menu Modal */}
-      <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setMenuVisible(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
-          <View style={styles.menuContainer}>
-            <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>Menu</Text>
-              <TouchableOpacity onPress={() => setMenuVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#1A3A69" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.menuItems}>
-              <Link href="/(tabs)" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Home</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/about-us" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>About</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/committee" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Committee</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/sponsors" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Sponsors</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/temples" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Temples</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/events" asChild>
-                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemText}>Events</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/gallery" asChild>
-                <TouchableOpacity style={styles.menuItemActive} onPress={() => setMenuVisible(false)}>
-                  <Text style={styles.menuItemTextActive}>Gallery</Text>
-                </TouchableOpacity>
-              </Link>
-              <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                <Text style={styles.menuItemText}>Contact</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.joinUsButton}>
-              <Text style={styles.joinUsText}>Join Us</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
+        {/* Footer */}
+        <AppFooter />
+      </ScrollView>
     </View>
+    </>
   );
 }
 
@@ -130,151 +64,70 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 50,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  headerLogo: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1A3A69',
-    letterSpacing: 1,
-  },
   scrollView: {
     flex: 1,
   },
   titleSection: {
-    padding: 32,
+    padding: padding.lg,
     alignItems: 'center',
   },
   mainTitle: {
-    fontSize: 36,
+    fontSize: fontScale(32),
     fontWeight: '700',
     color: '#1A3A69',
-    marginBottom: 12,
+    marginBottom: hp(1.5),
     textAlign: 'center',
   },
   titleDescription: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: '#666666',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: fontScale(24),
   },
   heroImageContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+    paddingHorizontal: padding.md,
+    marginBottom: hp(3),
   },
   heroImage: {
-    width: '100%',
-    height: 250,
-    borderRadius: 12,
+    height: hp(30),
+    borderRadius: wp(3),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   heroImageText: {
-    marginTop: 12,
-    fontSize: 14,
+    fontSize: fontScale(18),
     color: '#999999',
+    marginTop: hp(1),
   },
   galleryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 10,
-    gap: 12,
+    paddingHorizontal: padding.sm,
+    gap: padding.sm,
+    marginBottom: hp(3),
   },
   imageCard: {
-    width: (width - 52) / 2,
-    marginBottom: 12,
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: 150,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: (wp(100) - padding.sm * 3) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: wp(2),
+    overflow: 'hidden',
+    marginBottom: padding.sm,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: wp(1),
     elevation: 2,
   },
+  imagePlaceholder: {
+    height: hp(20),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   imageTitle: {
-    fontSize: 14,
+    fontSize: fontScale(14),
     fontWeight: '600',
-    color: '#333333',
-    marginTop: 8,
+    color: '#1A3A69',
+    padding: padding.sm,
     textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start',
-  },
-  menuContainer: {
-    backgroundColor: '#F5F5F0',
-    width: '80%',
-    height: '100%',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  menuTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A3A69',
-  },
-  menuItems: {
-    gap: 8,
-    marginBottom: 24,
-  },
-  menuItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  menuItemActive: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFF4E6',
-    borderRadius: 8,
-  },
-  menuItemText: {
-    fontSize: 18,
-    color: '#333333',
-  },
-  menuItemTextActive: {
-    fontSize: 18,
-    color: '#1A3A69',
-    fontWeight: '600',
-  },
-  joinUsButton: {
-    backgroundColor: '#FF8C00',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: 40,
-  },
-  joinUsText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
   },
 });

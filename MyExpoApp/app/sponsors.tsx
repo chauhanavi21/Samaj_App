@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text, View, Pressable, Linking } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
@@ -20,9 +21,11 @@ export default function SponsorsScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <AppHeader showBack={true} />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <AppHeader showBack={true} />
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.mainTitle}>Our Proud Sponsors</Text>
@@ -71,6 +74,7 @@ export default function SponsorsScreen() {
         <AppFooter />
       </ScrollView>
     </View>
+    </>
   );
 }
 

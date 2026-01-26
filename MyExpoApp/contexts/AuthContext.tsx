@@ -8,6 +8,7 @@ interface User {
   email: string;
   role: 'user' | 'admin';
   phone?: string;
+  memberId?: string;
 }
 
 interface AuthContextType {
@@ -15,7 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string, phone?: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, phone?: string, memberId?: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -85,13 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (name: string, email: string, password: string, phone?: string) => {
+  const signup = async (name: string, email: string, password: string, phone?: string, memberId?: string) => {
     try {
       console.log('🔄 Starting signup process...');
       console.log('Email:', email);
       console.log('Name:', name);
+      console.log('Member ID:', memberId);
       
-      const response = await authAPI.signup(name, email, password, phone);
+      const response = await authAPI.signup(name, email, password, phone, memberId);
       
       console.log('✅ Signup API response:', response);
       

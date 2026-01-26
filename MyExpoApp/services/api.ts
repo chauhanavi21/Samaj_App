@@ -89,12 +89,13 @@ api.interceptors.response.use(
 
 // Auth API functions
 export const authAPI = {
-  signup: async (name: string, email: string, password: string, phone?: string) => {
+  signup: async (name: string, email: string, password: string, phone?: string, memberId?: string) => {
     const response = await api.post('/auth/signup', {
       name,
       email,
       password,
       phone,
+      memberId,
     });
     return response.data;
   },
@@ -109,6 +110,11 @@ export const authAPI = {
 
   getMe: async () => {
     const response = await api.get('/auth/me');
+    return response.data;
+  },
+
+  updateProfile: async (data: { memberId?: string }) => {
+    const response = await api.put('/auth/profile', data);
     return response.data;
   },
 
