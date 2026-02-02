@@ -212,25 +212,14 @@ export default function FamilyTreeScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Family Tree</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push('/family-tree/add')}>
-          <IconSymbol name="plus" size={24} color="#FFF" />
-          <Text style={styles.addButtonText}>Add</Text>
-        </TouchableOpacity>
       </View>
 
       {entries.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No Family Entries Yet</Text>
           <Text style={styles.emptyText}>
-            Start building your family tree by adding your first entry
+            Your family tree information will appear here after signup.
           </Text>
-          <TouchableOpacity
-            style={styles.emptyButton}
-            onPress={() => router.push('/family-tree/add')}>
-            <Text style={styles.emptyButtonText}>Add First Entry</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <FlatList

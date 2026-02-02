@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "MyExpoApp",
-    "slug": "MyExpoApp",
+    "name": "Thali Yuva Sangh",
+    "slug": "thali-yuva-sangh",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myexpoapp",
+    "scheme": "thaliyuvasangh",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

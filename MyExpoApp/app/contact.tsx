@@ -1,31 +1,11 @@
-import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Pressable, Linking, Alert } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Pressable, Linking } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
-import { useState } from 'react';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 export default function ContactScreen() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-
-  const handleSubmit = () => {
-    if (!firstName || !email || !message) {
-      Alert.alert('Missing Fields', 'Please fill in all required fields');
-      return;
-    }
-    
-    console.log('Form submitted:', { firstName, lastName, email, message });
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setMessage('');
-    Alert.alert('Success', 'Thank you for your message! We will get back to you soon.');
-  };
-
   const handleContact = (type: string, value: string) => {
     if (type === 'phone') {
       Linking.openURL(`tel:${value}`).catch((err) => console.error('Failed to call:', err));
@@ -47,64 +27,6 @@ export default function ContactScreen() {
           <Text style={styles.titleDescription}>
             Have questions or want to volunteer? Reach out to us.
           </Text>
-        </View>
-
-        {/* Contact Form */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Send us a message</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>First Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="John"
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholderTextColor="#999999"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Last Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Doe"
-              value={lastName}
-              onChangeText={setLastName}
-              placeholderTextColor="#999999"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="john@example.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor="#999999"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Message *</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Tell us how you'd like to help..."
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
-              placeholderTextColor="#999999"
-            />
-          </View>
-
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Send Message</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Contact Information Section */}
@@ -163,59 +85,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
     lineHeight: fontScale(24),
-  },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    margin: padding.md,
-    padding: padding.lg,
-    borderRadius: wp(3),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: wp(2),
-    elevation: 3,
-  },
-  formTitle: {
-    fontSize: fontScale(24),
-    fontWeight: '700',
-    color: '#1A3A69',
-    marginBottom: hp(3),
-  },
-  inputGroup: {
-    marginBottom: hp(2.5),
-  },
-  label: {
-    fontSize: fontScale(15),
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: hp(1),
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: wp(2),
-    paddingHorizontal: padding.sm,
-    paddingVertical: hp(1.5),
-    fontSize: fontScale(16),
-    color: '#333333',
-    backgroundColor: '#FFFFFF',
-  },
-  textArea: {
-    height: hp(15),
-    paddingTop: hp(1.5),
-  },
-  submitButton: {
-    backgroundColor: '#FF8C00',
-    paddingVertical: hp(2),
-    paddingHorizontal: padding.lg,
-    borderRadius: wp(2),
-    alignItems: 'center',
-    marginTop: hp(1),
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: fontScale(18),
-    fontWeight: '700',
   },
   contactInfoSection: {
     backgroundColor: '#1A3A69',

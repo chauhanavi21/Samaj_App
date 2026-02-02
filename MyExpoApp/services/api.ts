@@ -122,6 +122,22 @@ export const authAPI = {
     const response = await api.post('/auth/logout');
     return response.data;
   },
+
+  forgotPassword: async (email: string, memberId: string) => {
+    const response = await api.post('/auth/forgot-password', {
+      email,
+      memberId,
+    });
+    return response.data;
+  },
+
+  resetPassword: async (resetToken: string, password: string, confirmPassword: string) => {
+    const response = await api.post(`/auth/reset-password/${resetToken}`, {
+      password,
+      confirmPassword,
+    });
+    return response.data;
+  },
 };
 
 // Family Tree API functions
