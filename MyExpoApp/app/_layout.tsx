@@ -36,5 +36,4 @@ export default function RootLayout() {
         </ThemeProvider>
       </AuthProvider>
     </SafeAreaProvider>
-  );
-}
+

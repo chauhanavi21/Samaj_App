@@ -18,7 +18,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { authAPI } from '@/services/api';
 
 export default function ProfileScreen() {
-  const { user, logout, checkAuth } = useAuth();
+  const { user, signOut, syncUser } = useAuth();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [newMemberId, setNewMemberId] = useState(user?.memberId || '');
   const [updating, setUpdating] = useState(false);
@@ -36,7 +36,7 @@ export default function ProfileScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await logout();
+            await signOut();
             router.replace('/login');
           },
         },
@@ -59,7 +59,7 @@ export default function ProfileScreen() {
     try {
       const response = await authAPI.updateProfile({ memberId: newMemberId.trim() });
       if (response.success) {
-        await checkAuth(); // Refresh user data
+        await syncUser(); // Refresh user data
         setEditModalVisible(false);
         Alert.alert('Success', 'Member ID updated successfully!');
       } else {

@@ -1,28 +1,35 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '@/config/api';
+import * as SecureStore from 'expo-secure-store';
+
+const TOKEN_KEY = 'auth_token';
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    // Note: ngrok-skip-browser-warning header kept for compatibility (harmless if not using ngrok)
   },
-  timeout: 30000, // 30 seconds timeout
+  timeout: 30000,
 });
 
-// Add token to requests
+// Add JWT token to requests
 api.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Get JWT token from SecureStore
+    try {
+      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error getting token:', error);
     }
+    
     // Log request for debugging
     console.log('📤 Making request to:', config.method?.toUpperCase(), config.url);
     console.log('📤 Full URL:', config.baseURL + config.url);
-    console.log('📤 Headers:', JSON.stringify(config.headers, null, 2));
+    console.log('📤 Has Auth Token:', !!config.headers.Authorization);
     return config;
   },
   (error) => {
@@ -45,92 +52,62 @@ api.interceptors.response.use(
     console.error('   Error name:', error.name);
     
     if (error.response) {
-      // Server responded with error status
       console.error('   Response status:', error.response.status);
       console.error('   Response data:', JSON.stringify(error.response.data, null, 2));
       console.error('   Request URL:', error.config?.url);
     } else if (error.request) {
-      // Request was made but no response received
       console.error('   Request was made but no response received');
-      console.error('   Request details:', JSON.stringify(error.request, null, 2));
       
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        console.error('⏱️ Network Timeout Error:');
-        console.error('   - Request timed out after 30 seconds');
-        console.error('   - Backend might be slow or not responding');
-        console.error('   - Check backend is running: cd backend && npm run dev');
-        console.error('   - If using a tunnel, verify it is running (cloudflared/ngrok)');
+        console.error('⏱️ Network Timeout Error');
       } else if (error.code === 'ERR_NETWORK') {
-        console.error('🌐 Network Connection Error:');
-        console.error('   - Cannot establish connection to:', API_BASE_URL);
-        console.error('   - This might be an SSL/certificate issue in React Native');
-        console.error('   - Try: Check your tunnel logs to see if request reached backend');
-        console.error('   - Try: Use HTTP URL instead of HTTPS (temporary test)');
-        console.error('   - Try: Restart the Expo app');
-      } else {
-        console.error('🌐 Network Error:', error.message);
-        console.error('   - Cannot reach backend server at:', API_BASE_URL);
-        console.error('   - Check backend is running: cd backend && npm run dev');
-        console.error('   - If using a tunnel, restart it (cloudflared/ngrok) and re-copy the URL');
+        console.error('🌐 Network Connection Error');
       }
-    } else {
-      // Error setting up request
-      console.error('❌ Request Setup Error:', error.message);
     }
     
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      await SecureStore.deleteItemAsync('authToken');
-      await SecureStore.deleteItemAsync('userData');
-    }
     return Promise.reject(error);
   }
 );
 
 // Auth API functions
 export const authAPI = {
-  signup: async (name: string, email: string, password: string, phone: string | undefined, memberId: string) => {
-    const response = await api.post('/auth/signup', {
-      name,
-      email,
-      password,
-      phone,
-      memberId,
-    });
+  // Signup
+  signup: async (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    memberId: string;
+  }) => {
+    const response = await api.post('/auth/signup', data);
     return response.data;
   },
 
+  // Login
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', {
-      email,
-      password,
-    });
+    const response = await api.post('/auth/login', { email, password });
     return response.data;
   },
 
+  // Get current user
   getMe: async () => {
     const response = await api.get('/auth/me');
     return response.data;
   },
 
-  updateProfile: async (data: { memberId?: string }) => {
+  // Update profile
+  updateProfile: async (data: { memberId?: string; phone?: string }) => {
     const response = await api.put('/auth/profile', data);
     return response.data;
   },
 
-  logout: async () => {
-    const response = await api.post('/auth/logout');
-    return response.data;
-  },
-
+  // Forgot password
   forgotPassword: async (email: string, memberId: string) => {
-    const response = await api.post('/auth/forgot-password', {
-      email,
-      memberId,
-    });
+    const response = await api.post('/auth/forgot-password', { email, memberId });
     return response.data;
   },
 
+  // Reset password
   resetPassword: async (resetToken: string, password: string, confirmPassword: string) => {
     const response = await api.post(`/auth/reset-password/${resetToken}`, {
       password,

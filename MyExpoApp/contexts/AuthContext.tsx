@@ -13,57 +13,56 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string, phone: string | undefined, memberId: string) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
+}
+
+interface SignupData {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  memberId: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const TOKEN_KEY = 'auth_token';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is authenticated on mount
+  // Load token and user on mount
   useEffect(() => {
-    checkAuth();
+    loadStoredAuth();
   }, []);
 
-  const checkAuth = async () => {
+  const loadStoredAuth = async () => {
     try {
-      setIsLoading(true);
-      const token = await SecureStore.getItemAsync('authToken');
-      const userData = await SecureStore.getItemAsync('userData');
-
-      if (token && userData) {
-        // Verify token is still valid by fetching user data
-        try {
-          const response = await authAPI.getMe();
-          if (response.success) {
-            setUser(response.user);
-            // Update stored user data
-            await SecureStore.setItemAsync('userData', JSON.stringify(response.user));
-          } else {
-            // Token invalid, clear storage
-            await SecureStore.deleteItemAsync('authToken');
-            await SecureStore.deleteItemAsync('userData');
-            setUser(null);
-          }
-        } catch (error) {
-          // Token invalid or expired
-          await SecureStore.deleteItemAsync('authToken');
-          await SecureStore.deleteItemAsync('userData');
-          setUser(null);
+      const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+      
+      if (storedToken) {
+        setToken(storedToken);
+        // Fetch user data
+        const response = await authAPI.getMe();
+        if (response.success) {
+          setUser(response.user);
+        } else {
+          // Invalid token, clear it
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+          setToken(null);
         }
-      } else {
-        setUser(null);
       }
     } catch (error) {
-      console.error('Auth check error:', error);
-      setUser(null);
+      console.error('Error loading auth:', error);
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
     } finally {
       setIsLoading(false);
     }
@@ -73,88 +72,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authAPI.login(email, password);
       
-      if (response.success) {
-        // Store token and user data
-        await SecureStore.setItemAsync('authToken', response.token);
-        await SecureStore.setItemAsync('userData', JSON.stringify(response.user));
+      if (response.success && response.token) {
+        await SecureStore.setItemAsync(TOKEN_KEY, response.token);
+        setToken(response.token);
         setUser(response.user);
       } else {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || error.message || 'Login failed');
+      console.error('Login error:', error);
+      throw error;
     }
   };
 
-  const signup = async (name: string, email: string, password: string, phone: string | undefined, memberId: string) => {
+  const signup = async (data: SignupData) => {
     try {
-      console.log('🔄 Starting signup process...');
-      console.log('Email:', email);
-      console.log('Name:', name);
-      console.log('Member ID:', memberId);
+      const response = await authAPI.signup(data);
       
-      const response = await authAPI.signup(name, email, password, phone, memberId);
-      
-      console.log('✅ Signup API response:', response);
-      
-      if (response.success) {
-        // Store token and user data
-        await SecureStore.setItemAsync('authToken', response.token);
-        await SecureStore.setItemAsync('userData', JSON.stringify(response.user));
+      if (response.success && response.token) {
+        await SecureStore.setItemAsync(TOKEN_KEY, response.token);
+        setToken(response.token);
         setUser(response.user);
-        console.log('✅ User stored successfully');
       } else {
-        console.error('❌ Signup failed:', response.message);
         throw new Error(response.message || 'Signup failed');
       }
     } catch (error: any) {
-      console.error('❌ Signup error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        code: error.code,
-      });
-      
-      // Provide more detailed error messages
-      let errorMessage = 'Signup failed';
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        errorMessage =
-          'Connection timeout. Please check:\n- Backend server is running\n- Correct API URL (tunnel or local IP)\n- If using local IP, phone and PC are on same Wi‑Fi\n- If using a tunnel, verify it is running';
-      } else if (error.code === 'ERR_NETWORK' || error.message?.includes('Network')) {
-        errorMessage =
-          'Cannot connect to server. Please check:\n- Backend is running on port 3001\n- Firewall allows Node.js/port 3001\n- Correct API URL (tunnel or local IP)\n- If using a tunnel, copy the latest trycloudflare/ngrok URL into config or EXPO_PUBLIC_API_ORIGIN';
-      }
-      
-      throw new Error(errorMessage);
+      console.error('Signup error:', error);
+      throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await authAPI.logout();
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      setToken(null);
+      setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      // Clear storage regardless of API call success
-      await SecureStore.deleteItemAsync('authToken');
-      await SecureStore.deleteItemAsync('userData');
-      setUser(null);
+    }
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      setUser({ ...user, ...userData });
     }
   };
 
   const value: AuthContextType = {
     user,
+    token,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!token,
     login,
     signup,
     logout,
-    checkAuth,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

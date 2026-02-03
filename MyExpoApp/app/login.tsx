@@ -32,8 +32,10 @@ export default function LoginScreen() {
     try {
       await login(email.trim(), password);
       router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -87,10 +89,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.forgotPasswordButton}
-              onPress={() => router.push('/forgot-password')}
-            >
+            <TouchableOpacity style={styles.forgotPasswordLink} onPress={() => router.push('/forgot-password')}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
@@ -170,14 +169,16 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: wp(1),
   },
-  forgotPasswordButton: {
-    alignItems: 'flex-end',
+  forgotPasswordContainer: {
+    alignItems: 'center',
     marginBottom: hp(1),
+    paddingHorizontal: padding.sm,
   },
   forgotPasswordText: {
-    fontSize: fontScale(14),
-    color: '#1A3A69',
-    fontWeight: '600',
+    fontSize: fontScale(13),
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   button: {
     backgroundColor: '#1A3A69',

@@ -29,27 +29,45 @@ export default function ContactScreen() {
           </Text>
         </View>
 
-        {/* Contact Information Section */}
+        {/* Contact Information Section with Cards */}
         <View style={styles.contactInfoSection}>
-          <Text style={styles.contactInfoTitle}>Contact Information</Text>
+          <Text style={styles.sectionTitle}>Get In Touch</Text>
           
-          <Pressable onPress={() => handleContact('address', '')} style={styles.contactRow}>
-            <MaterialIcons name="location-on" size={24} color="#FFFFFF" />
-            <View style={styles.contactDetails}>
-              <Text style={styles.contactText}>Thali Yuva Sangh HQ</Text>
-              <Text style={styles.contactText}>Near Village Temple, Thali</Text>
-              <Text style={styles.contactText}>District, State, India 123456</Text>
+          {/* Address Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <MaterialIcons name="location-on" size={28} color="#1A3A69" />
+              <Text style={styles.cardTitle}>Address</Text>
             </View>
+            <Text style={styles.cardText}>Thali Yuva Sangh HQ</Text>
+            <Text style={styles.cardText}>Near Village Temple, Thali</Text>
+            <Text style={styles.cardText}>District, State, India 123456</Text>
+          </View>
+
+          {/* Phone Card */}
+          <Pressable 
+            onPress={() => handleContact('phone', '+919876543210')} 
+            style={styles.card}
+          >
+            <View style={styles.cardHeader}>
+              <MaterialIcons name="phone" size={28} color="#1A3A69" />
+              <Text style={styles.cardTitle}>Phone</Text>
+            </View>
+            <Text style={[styles.cardText, styles.linkText]}>+91 98765 43210</Text>
+            <Text style={styles.cardSubtext}>Tap to call</Text>
           </Pressable>
 
-          <Pressable onPress={() => handleContact('phone', '+919876543210')} style={styles.contactRow}>
-            <MaterialIcons name="phone" size={24} color="#FFFFFF" />
-            <Text style={styles.contactText}>+91 98765 43210</Text>
-          </Pressable>
-
-          <Pressable onPress={() => handleContact('email', 'contact@thaliyuvasangh.org')} style={styles.contactRow}>
-            <MaterialIcons name="email" size={24} color="#FFFFFF" />
-            <Text style={styles.contactText}>contact@thaliyuvasangh.org</Text>
+          {/* Email Card */}
+          <Pressable 
+            onPress={() => handleContact('email', 'contact@thaliyuvasangh.org')} 
+            style={styles.card}
+          >
+            <View style={styles.cardHeader}>
+              <MaterialIcons name="email" size={28} color="#1A3A69" />
+              <Text style={styles.cardTitle}>Email</Text>
+            </View>
+            <Text style={[styles.cardText, styles.linkText]}>contact@thaliyuvasangh.org</Text>
+            <Text style={styles.cardSubtext}>Tap to send email</Text>
           </Pressable>
         </View>
 
@@ -87,15 +105,52 @@ const styles = StyleSheet.create({
     lineHeight: fontScale(24),
   },
   contactInfoSection: {
-    backgroundColor: '#1A3A69',
     padding: padding.lg,
-    marginTop: hp(2.5),
+    marginTop: hp(2),
   },
-  contactInfoTitle: {
+  sectionTitle: {
     fontSize: fontScale(24),
     fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: hp(3),
+    color: '#1A3A69',
+    marginBottom: hp(2.5),
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: padding.lg,
+    marginBottom: hp(2),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp(1.5),
+    gap: wp(3),
+  },
+  cardTitle: {
+    fontSize: fontScale(20),
+    fontWeight: '600',
+    color: '#1A3A69',
+  },
+  cardText: {
+    fontSize: fontScale(16),
+    color: '#333333',
+    lineHeight: fontScale(24),
+  },
+  linkText: {
+    color: '#1A3A69',
+    fontWeight: '500',
+  },
+  cardSubtext: {
+    fontSize: fontScale(14),
+    color: '#999999',
+    marginTop: hp(0.5),
+    fontStyle: 'italic',
   },
   contactRow: {
     flexDirection: 'row',
