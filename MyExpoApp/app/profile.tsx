@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,22 +6,15 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  TextInput,
-  Modal,
-  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/app-header';
 import { router, Stack } from 'expo-router';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { authAPI } from '@/services/api';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [newMemberId, setNewMemberId] = useState(user?.memberId || '');
-  const [updating, setUpdating] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -42,38 +35,6 @@ export default function ProfileScreen() {
         },
       ]
     );
-  };
-
-  const handleEditMemberId = () => {
-    setNewMemberId(user?.memberId || '');
-    setEditModalVisible(true);
-  };
-
-  const handleUpdateMemberId = async () => {
-    if (!newMemberId.trim()) {
-      Alert.alert('Error', 'Member ID cannot be empty');
-      return;
-    }
-
-    setUpdating(true);
-    try {
-      const response = await authAPI.updateProfile({ memberId: newMemberId.trim() });
-      if (response.success) {
-        await syncUser(); // Refresh user data
-        setEditModalVisible(false);
-        Alert.alert('Success', 'Member ID updated successfully!');
-      } else {
-        Alert.alert('Error', response.message || 'Failed to update Member ID');
-      }
-    } catch (error: any) {
-      console.error('Update Member ID error:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || error.message || 'Failed to update Member ID'
-      );
-    } finally {
-      setUpdating(false);
-    }
   };
 
   if (!user) {
@@ -128,9 +89,6 @@ export default function ProfileScreen() {
                   {user.memberId || 'Not set'}
                 </Text>
               </View>
-              <TouchableOpacity onPress={handleEditMemberId} style={styles.editButton}>
-                <MaterialIcons name="edit" size={18} color="#1A3A69" />
-              </TouchableOpacity>
             </View>
 
             <View style={styles.infoRow}>
@@ -150,58 +108,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* Edit Member ID Modal */}
-      <Modal
-        visible={editModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Member ID</Text>
-            <Text style={styles.modalDescription}>
-              Update your unique Member ID. This ID will be used to identify you in the Family Tree.
-            </Text>
-
-            <View style={styles.inputContainer}>
-              <MaterialIcons name="badge" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Member ID"
-                placeholderTextColor="#999"
-                value={newMemberId}
-                onChangeText={setNewMemberId}
-                autoCapitalize="characters"
-                editable={!updating}
-              />
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setEditModalVisible(false)}
-                disabled={updating}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleUpdateMemberId}
-                disabled={updating}
-              >
-                {updating ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
     </>
   );
@@ -274,11 +180,6 @@ const styles = StyleSheet.create({
     marginLeft: wp(3),
     flex: 1,
   },
-  editButton: {
-    padding: wp(2),
-    borderRadius: wp(1),
-    backgroundColor: '#E6F3FF',
-  },
   infoLabel: {
     fontSize: fontScale(14),
     color: '#666666',
@@ -302,76 +203,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: fontScale(18),
     fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: wp(3),
-    padding: padding.lg,
-    width: wp(85),
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: fontScale(24),
-    fontWeight: '700',
-    color: '#1A3A69',
-    marginBottom: hp(1),
-  },
-  modalDescription: {
-    fontSize: fontScale(14),
-    color: '#666666',
-    marginBottom: hp(3),
-    lineHeight: fontScale(20),
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: wp(2),
-    paddingHorizontal: padding.sm,
-    paddingVertical: hp(1.5),
-    marginBottom: hp(3),
-    backgroundColor: '#FAFAFA',
-  },
-  inputIcon: {
-    marginRight: wp(2),
-  },
-  input: {
-    flex: 1,
-    fontSize: fontScale(16),
-    color: '#333333',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: wp(3),
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: hp(1.5),
-    borderRadius: wp(2),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F0F0F0',
-  },
-  cancelButtonText: {
-    fontSize: fontScale(16),
-    fontWeight: '600',
-    color: '#666666',
-  },
-  saveButton: {
-    backgroundColor: '#1A3A69',
-  },
-  saveButtonText: {
-    fontSize: fontScale(16),
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
 });
