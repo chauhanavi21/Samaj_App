@@ -18,7 +18,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { authAPI } from '@/services/api';
 
 export default function ProfileScreen() {
-  const { user, signOut, syncUser } = useAuth();
+  const { user, logout } = useAuth();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [newMemberId, setNewMemberId] = useState(user?.memberId || '');
   const [updating, setUpdating] = useState(false);
@@ -36,7 +36,7 @@ export default function ProfileScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
+            await logout();
             router.replace('/login');
           },
         },
