@@ -90,8 +90,9 @@ export const authAPI = {
   },
 
   // Get current user
-  getMe: async () => {
-    const response = await api.get('/auth/me');
+  getMe: async (token?: string) => {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const response = await api.get('/auth/me', config);
     return response.data;
   },
 
@@ -146,6 +147,104 @@ export const familyTreeAPI = {
   // Delete family tree entry
   delete: async (id: string) => {
     const response = await api.delete(`/family-tree/${id}`);
+    return response.data;
+  },
+};
+
+// Admin API functions
+export const adminAPI = {
+  // Dashboard & Stats
+  getDashboard: async () => {
+    const response = await api.get('/admin/dashboard');
+    return response.data;
+  },
+
+  getStatsOverview: async () => {
+    const response = await api.get('/admin/stats/overview');
+    return response.data;
+  },
+
+  // User Management
+  getUsers: async (params?: { page?: number; limit?: number; search?: string; role?: string }) => {
+    const response = await api.get('/admin/users', { params });
+    return response.data;
+  },
+
+  getUserById: async (id: string) => {
+    const response = await api.get(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  getUserFamilyTree: async (id: string) => {
+    const response = await api.get(`/admin/users/${id}/family-tree`);
+    return response.data;
+  },
+
+  updateUser: async (id: string, data: any) => {
+    const response = await api.put(`/admin/users/${id}`, data);
+    return response.data;
+  },
+
+  updateUserRole: async (id: string, role: 'user' | 'admin') => {
+    const response = await api.put(`/admin/users/${id}/role`, { role });
+    return response.data;
+  },
+
+  changeUserPassword: async (id: string, currentPassword: string, newPassword: string) => {
+    const response = await api.put(`/admin/users/${id}/password`, { currentPassword, newPassword });
+    return response.data;
+  },
+
+  deleteUser: async (id: string, deleteFamilyTree?: boolean) => {
+    const params = deleteFamilyTree ? { deleteFamilyTree: 'true' } : {};
+    const response = await api.delete(`/admin/users/${id}`, { params });
+    return response.data;
+  },
+
+  // Page Content Management (CMS)
+  getPages: async () => {
+    const response = await api.get('/admin/pages');
+    return response.data;
+  },
+
+  getPageByName: async (pageName: string) => {
+    const response = await api.get(`/admin/pages/${pageName}`);
+    return response.data;
+  },
+
+  createPage: async (data: any) => {
+    const response = await api.post('/admin/pages', data);
+    return response.data;
+  },
+
+  updatePage: async (pageName: string, data: any) => {
+    const response = await api.put(`/admin/pages/${pageName}`, data);
+    return response.data;
+  },
+
+  deletePage: async (pageName: string) => {
+    const response = await api.delete(`/admin/pages/${pageName}`);
+    return response.data;
+  },
+
+  // Image Upload
+  uploadImage: async (imageUri: string, filename: string) => {
+    const formData = new FormData();
+    
+    // Create file object for upload
+    const file = {
+      uri: imageUri,
+      type: 'image/jpeg', // or detect from file
+      name: filename,
+    } as any;
+    
+    formData.append('image', file);
+
+    const response = await api.post('/admin/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 };

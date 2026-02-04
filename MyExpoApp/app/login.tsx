@@ -30,8 +30,14 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(email.trim(), password);
-      router.replace('/(tabs)');
+      const user = await login(email.trim(), password);
+      
+      // Route based on user role (from backend)
+      if (user.role === 'admin') {
+        router.replace('/(admin)');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';

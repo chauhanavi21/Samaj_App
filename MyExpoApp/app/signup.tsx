@@ -50,7 +50,7 @@ export default function SignupScreen() {
     setLoading(true);
     
     try {
-      await signup({
+      const user = await signup({
         name: name.trim(),
         email: email.trim(),
         password,
@@ -58,8 +58,11 @@ export default function SignupScreen() {
         memberId: memberId.trim(),
       });
       
+      // Route based on user role (from backend)
+      const destination = user.role === 'admin' ? '/(admin)' : '/(tabs)';
+      
       Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        { text: 'OK', onPress: () => router.replace(destination) }
       ]);
     } catch (err: any) {
       console.error('Signup error:', err);

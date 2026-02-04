@@ -16,10 +16,12 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (data: SignupData) => Promise<void>;
+  isAdmin: boolean;
+  login: (email: string, password: string) => Promise<User>;
+  signup: (data: SignupData) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
 }
 
 interface SignupData {
@@ -50,11 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (storedToken) {
         setToken(storedToken);
-        // Fetch user data
-        const response = await authAPI.getMe();
-        if (response.success) {
-          setUser(response.user);
-        } else {
+        // Fetch user data with role from /api/auth/me
+        try {
+          const response = await authAPI.getMe(storedToken);
+          if (response.success && response.user) {
+            setUser(response.user);
+          } else {
+            // Invalid token, clear it
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            setToken(null);
+          }
+        } catch (error) {
+          console.error('Error fetching user:', error);
           // Invalid token, clear it
           await SecureStore.deleteItemAsync(TOKEN_KEY);
           setToken(null);
@@ -68,22 +77,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       const response = await authAPI.login(email, password);
       
       if (response.success && response.token) {
         await SecureStore.setItemAsync(TOKEN_KEY, response.token);
         setToken(response.token);
-        setUser(response.user);
-      } else {
-        throw new Error(response.message || 'Login failed');
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  };
+        
+        // Fetch complete user profile with role
+        const meResponse = await authAPI.getMe(response.token);
+        if (meResponse.success && meResponse.user) {
+          setUser(meResponse.user);
+          return meResponse.user;
+        } else {
+          setUser(response.user);
+          return response.user;
+        }
+      } else {: Promise<User> => {
+    try {
+      const response = await authAPI.signup(data);
+      
+      if (response.success && response.token) {
+        await SecureStore.setItemAsync(TOKEN_KEY, response.token);
+        setToken(response.token);
+        
+        // Fetch complete user profile with role
+        const meResponse = await authAPI.getMe(response.token);
+        if (meResponse.success && meResponse.user) {
+          setUser(meResponse.user);
+          return meResponse.user;
+        } else {
+          setUser(response.user);
+          return response.user;
+        }
 
   const signup = async (data: SignupData) => {
     try {
@@ -109,15 +136,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
+    }refreshUser = async () => {
+    try {
+      if (token) {
+        const response = await authAPI.getMe(token);
+        if (response.success && response.user) {
+          setUser(response.user);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
     }
   };
 
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...userData });
-    }
-  };
-
+  const value: AuthContextType = {
+    user,
+    token,
+    isLoading,
+    isAuthenticated: !!user && !!token,
+    isAdmin: user?.role === 'admin',
+    login,
+    signup,
+    logout,
+    updateUser,
+    refresh
   const value: AuthContextType = {
     user,
     token,
