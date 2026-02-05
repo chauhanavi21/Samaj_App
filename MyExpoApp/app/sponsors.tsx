@@ -1,31 +1,74 @@
-import { ScrollView, StyleSheet, Text, View, Pressable, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  Linking,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
+import { contentAPI } from '@/services/api';
 
 export default function SponsorsScreen() {
+  const [sponsors, setSponsors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   const handlePhone = (phone: string) => {
     Linking.openURL(`tel:${phone}`).catch((err) => console.error('Failed to call:', err));
   };
 
-  const sponsors = [
-    { name: 'Vijay Engineering Works', amount: '₹51,000', phone: '+91 98250 12345' },
-    { name: 'Rameshwar Textiles', amount: '₹25,000', phone: '+91 98250 67890' },
-    { name: 'Pooja Sweets & Snacks', amount: '₹11,000', phone: '+91 98250 54321' },
-    { name: 'Ambica Hardware', amount: '₹11,000', phone: '+91 98250 98765' },
-    { name: 'Kisan Fertilisers', amount: '₹5,000', phone: '+91 98250 11223' },
-    { name: 'Saraswati Stationery', amount: '₹2,500', phone: '+91 98250 44556' },
-  ];
+  const loadSponsors = async (nextPage: number, mode: 'replace' | 'append') => {
+    try {
+      const response = await contentAPI.getSponsors({ page: nextPage, limit: 50 });
+      const data = response?.data ?? [];
+      const pagination = response?.pagination;
+
+      setSponsors((prev) => (mode === 'replace' ? data : [...prev, ...data]));
+      setHasNextPage(!!pagination?.hasNextPage);
+      setPage(pagination?.page ?? nextPage);
+    } catch (err: any) {
+      console.error('Load sponsors error:', err?.response?.data || err?.message || err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSponsors(1, 'replace');
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadSponsors(1, 'replace');
+  };
+
+  const onLoadMore = () => {
+    if (!hasNextPage) return;
+    loadSponsors(page + 1, 'append');
+  };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <AppHeader showBack={true} />
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.mainTitle}>Our Proud Sponsors</Text>
@@ -53,8 +96,14 @@ export default function SponsorsScreen() {
           </View>
 
           {/* Table Rows */}
-          {sponsors.map((sponsor, index) => (
-            <View key={index} style={styles.tableRow}>
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#1A3A69" />
+            </View>
+          )}
+
+          {!loading && sponsors.map((sponsor, index) => (
+            <View key={sponsor._id || String(index)} style={styles.tableRow}>
               <View style={styles.tableCellName}>
                 <Text style={styles.sponsorName} numberOfLines={2}>{sponsor.name}</Text>
               </View>
@@ -68,6 +117,12 @@ export default function SponsorsScreen() {
               </View>
             </View>
           ))}
+
+          {!loading && hasNextPage && (
+            <TouchableOpacity onPress={onLoadMore} style={styles.loadMoreButton}>
+              <Text style={styles.loadMoreText}>Load more</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Footer */}
@@ -113,6 +168,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: wp(2),
     elevation: 3,
+  },
+  loadingContainer: {
+    paddingVertical: hp(3),
+    alignItems: 'center',
   },
   tableHeader: {
     flexDirection: 'row',
@@ -195,5 +254,17 @@ const styles = StyleSheet.create({
     color: '#666666',
     textDecorationLine: 'underline',
     flexShrink: 1,
+  },
+  loadMoreButton: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingVertical: hp(2),
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    fontSize: fontScale(15),
+    fontWeight: '700',
+    color: '#1A3A69',
   },
 });

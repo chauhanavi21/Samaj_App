@@ -1,55 +1,66 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
+import { contentAPI } from '@/services/api';
 
 interface Offer {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  badge: string;
+  badgeText: string;
   badgeColor: string;
-  date: string;
+  validityText: string;
   category: string;
 }
 
 export default function OffersScreen() {
-  const offers: Offer[] = [
-    {
-      id: '1',
-      title: 'Student Stationery Kit',
-      description: 'Free stationery kits for school children of Thali village members at the start of the academic year.',
-      badge: 'FREE',
-      badgeColor: '#FF8C00',
-      date: 'June 2026',
-      category: 'Education',
-    },
-    {
-      id: '2',
-      title: 'Health Checkup Package',
-      description: 'Special discounted full-body checkup at City Hospital for Sangh members and their families.',
-      badge: '₹999 Only',
-      badgeColor: '#FF8C00',
-      date: 'Limited Time',
-      category: 'Health',
-    },
-    {
-      id: '3',
-      title: 'Member Exclusive: Wedding Venue Discount',
-      description: 'Get 20% off on booking the community hall for family weddings. Valid for active members only.',
-      badge: '20% OFF',
-      badgeColor: '#FF8C00',
-      date: 'Valid until Dec 2026',
-      category: 'Community',
-    },
-  ];
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
+  const loadOffers = async (nextPage: number, mode: 'replace' | 'append') => {
+    try {
+      const response = await contentAPI.getOffers({ page: nextPage, limit: 30 });
+      const data = (response?.data ?? []) as Offer[];
+      const pagination = response?.pagination;
+
+      setOffers((prev) => (mode === 'replace' ? data : [...prev, ...data]));
+      setHasNextPage(!!pagination?.hasNextPage);
+      setPage(pagination?.page ?? nextPage);
+    } catch (err: any) {
+      console.error('Load offers error:', err?.response?.data || err?.message || err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOffers(1, 'replace');
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadOffers(1, 'replace');
+  };
+
+  const onLoadMore = () => {
+    if (!hasNextPage) return;
+    loadOffers(page + 1, 'append');
+  };
 
   return (
     <>
@@ -59,7 +70,9 @@ export default function OffersScreen() {
       
       <ScrollView
         style={styles.scrollView}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.pageTitle}>Special Offers</Text>
@@ -70,11 +83,17 @@ export default function OffersScreen() {
 
         {/* Offers List */}
         <View style={styles.offersContainer}>
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#1A3A69" />
+            </View>
+          )}
+
           {offers.map((offer) => (
-            <View key={offer.id} style={styles.offerCard}>
+            <View key={offer._id} style={styles.offerCard}>
               {/* Badge */}
               <View style={[styles.badge, { backgroundColor: offer.badgeColor }]}>
-                <Text style={styles.badgeText}>{offer.badge}</Text>
+                <Text style={styles.badgeText}>{offer.badgeText}</Text>
               </View>
 
               {/* Title */}
@@ -86,7 +105,7 @@ export default function OffersScreen() {
               {/* Date */}
               <View style={styles.infoRow}>
                 <Text style={styles.infoIcon}>📅</Text>
-                <Text style={styles.infoText}>{offer.date}</Text>
+                <Text style={styles.infoText}>{offer.validityText}</Text>
               </View>
 
               {/* Category */}
@@ -96,6 +115,12 @@ export default function OffersScreen() {
               </View>
             </View>
           ))}
+
+          {!loading && hasNextPage && (
+            <TouchableOpacity onPress={onLoadMore} style={styles.loadMoreButton}>
+              <Text style={styles.loadMoreText}>Load more</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Footer Note */}
@@ -141,6 +166,10 @@ const styles = StyleSheet.create({
   offersContainer: {
     padding: padding.md,
     gap: hp(2),
+  },
+  loadingContainer: {
+    paddingVertical: hp(3),
+    alignItems: 'center',
   },
   offerCard: {
     backgroundColor: '#FFFFFF',
@@ -201,5 +230,19 @@ const styles = StyleSheet.create({
     color: '#999999',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  loadMoreButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1A3A69',
+    paddingVertical: hp(1.75),
+    borderRadius: wp(2),
+    alignItems: 'center',
+    marginTop: hp(1),
+  },
+  loadMoreText: {
+    fontSize: fontScale(16),
+    fontWeight: '700',
+    color: '#1A3A69',
   },
 });

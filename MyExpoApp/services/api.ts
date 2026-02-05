@@ -28,7 +28,9 @@ api.interceptors.request.use(
     
     // Log request for debugging
     console.log('📤 Making request to:', config.method?.toUpperCase(), config.url);
-    console.log('📤 Full URL:', config.baseURL + config.url);
+    const baseUrl = config.baseURL ?? '';
+    const url = config.url ?? '';
+    console.log('📤 Full URL:', baseUrl + url);
     console.log('📤 Has Auth Token:', !!config.headers.Authorization);
     return config;
   },
@@ -151,6 +153,30 @@ export const familyTreeAPI = {
   },
 };
 
+// Public dynamic content API functions
+export const contentAPI = {
+  getCommittee: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/content/committee', { params });
+    return response.data;
+  },
+  getSponsors: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/content/sponsors', { params });
+    return response.data;
+  },
+  getOffers: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/content/offers', { params });
+    return response.data;
+  },
+  getEvents: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/content/events', { params });
+    return response.data;
+  },
+  getPlaces: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/content/places', { params });
+    return response.data;
+  },
+};
+
 // Admin API functions
 export const adminAPI = {
   // Dashboard & Stats
@@ -201,45 +227,94 @@ export const adminAPI = {
     return response.data;
   },
 
-  // Page Content Management (CMS)
-  getPages: async () => {
-    const response = await api.get('/admin/pages');
+  // Dedicated dynamic content management
+  getCommittee: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/admin/content/committee', { params });
+    return response.data;
+  },
+  createCommitteeMember: async (data: any) => {
+    const response = await api.post('/admin/content/committee', data);
+    return response.data;
+  },
+  updateCommitteeMember: async (id: string, data: any) => {
+    const response = await api.put(`/admin/content/committee/${id}`, data);
+    return response.data;
+  },
+  deleteCommitteeMember: async (id: string) => {
+    const response = await api.delete(`/admin/content/committee/${id}`);
     return response.data;
   },
 
-  getPageByName: async (pageName: string) => {
-    const response = await api.get(`/admin/pages/${pageName}`);
+  getSponsors: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/admin/content/sponsors', { params });
+    return response.data;
+  },
+  createSponsor: async (data: any) => {
+    const response = await api.post('/admin/content/sponsors', data);
+    return response.data;
+  },
+  updateSponsor: async (id: string, data: any) => {
+    const response = await api.put(`/admin/content/sponsors/${id}`, data);
+    return response.data;
+  },
+  deleteSponsor: async (id: string) => {
+    const response = await api.delete(`/admin/content/sponsors/${id}`);
     return response.data;
   },
 
-  createPage: async (data: any) => {
-    const response = await api.post('/admin/pages', data);
+  getOffers: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/admin/content/offers', { params });
+    return response.data;
+  },
+  createOffer: async (data: any) => {
+    const response = await api.post('/admin/content/offers', data);
+    return response.data;
+  },
+  updateOffer: async (id: string, data: any) => {
+    const response = await api.put(`/admin/content/offers/${id}`, data);
+    return response.data;
+  },
+  deleteOffer: async (id: string) => {
+    const response = await api.delete(`/admin/content/offers/${id}`);
     return response.data;
   },
 
-  updatePage: async (pageName: string, data: any) => {
-    const response = await api.put(`/admin/pages/${pageName}`, data);
+  getEvents: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/admin/content/events', { params });
+    return response.data;
+  },
+  createEvent: async (data: any) => {
+    const response = await api.post('/admin/content/events', data);
+    return response.data;
+  },
+  updateEvent: async (id: string, data: any) => {
+    const response = await api.put(`/admin/content/events/${id}`, data);
+    return response.data;
+  },
+  deleteEvent: async (id: string) => {
+    const response = await api.delete(`/admin/content/events/${id}`);
     return response.data;
   },
 
-  deletePage: async (pageName: string) => {
-    const response = await api.delete(`/admin/pages/${pageName}`);
+  getPlaces: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/admin/content/places', { params });
+    return response.data;
+  },
+  createPlace: async (data: any) => {
+    const response = await api.post('/admin/content/places', data);
+    return response.data;
+  },
+  updatePlace: async (id: string, data: any) => {
+    const response = await api.put(`/admin/content/places/${id}`, data);
+    return response.data;
+  },
+  deletePlace: async (id: string) => {
+    const response = await api.delete(`/admin/content/places/${id}`);
     return response.data;
   },
 
   // Image Upload
-  uploadImage: async (imageUri: string, filename: string) => {
-    const formData = new FormData();
-    
-    // Create file object for upload
-    const file = {
-      uri: imageUri,
-      type: 'image/jpeg', // or detect from file
-      name: filename,
-    } as any;
-    
-    formData.append('image', file);
-
+  uploadImage: async (formData: FormData) => {
     const response = await api.post('/admin/upload-image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

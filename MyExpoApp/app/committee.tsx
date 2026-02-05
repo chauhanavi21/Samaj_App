@@ -1,31 +1,74 @@
-import { ScrollView, StyleSheet, Text, View, Pressable, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+  Linking,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
+import { contentAPI } from '@/services/api';
 
 export default function CommitteeScreen() {
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   const handlePhone = (phone: string) => {
     Linking.openURL(`tel:${phone}`).catch((err) => console.error('Failed to call:', err));
   };
 
-  const committeeMembers = [
-    { name: 'Rahul Sharma', nameHindi: 'राहुल शर्मा', phone: '+91 98765 43210', location: 'Ahmedabad' },
-    { name: 'Amit Patel', nameHindi: 'अमित पटेल', phone: '+91 98765 43211', location: 'Ahmedabad' },
-    { name: 'Suresh Meena', nameHindi: 'सुरेश मीणा', phone: '+91 98765 43212', location: 'Ahmedabad' },
-    { name: 'Vijay Singh', nameHindi: 'विजय सिंह', phone: '+91 98765 43213', location: 'Ahmedabad' },
-    { name: 'Deepak Vyas', nameHindi: 'दीपक व्यास', phone: '+91 98765 43214', location: 'Ahmedabad' },
-    { name: 'Manoj Kumar', nameHindi: 'मनोज कुमार', phone: '+91 98765 43215', location: 'Ahmedabad' },
-  ];
+  const loadMembers = async (nextPage: number, mode: 'replace' | 'append') => {
+    try {
+      const response = await contentAPI.getCommittee({ page: nextPage, limit: 50 });
+      const data = response?.data ?? [];
+      const pagination = response?.pagination;
+
+      setMembers((prev) => (mode === 'replace' ? data : [...prev, ...data]));
+      setHasNextPage(!!pagination?.hasNextPage);
+      setPage(pagination?.page ?? nextPage);
+    } catch (err: any) {
+      console.error('Load committee error:', err?.response?.data || err?.message || err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMembers(1, 'replace');
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadMembers(1, 'replace');
+  };
+
+  const onLoadMore = () => {
+    if (!hasNextPage) return;
+    loadMembers(page + 1, 'append');
+  };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <AppHeader showBack={true} />
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.mainTitle}>Thali Yuva Sangh Committee (समिति सदस्य)</Text>
@@ -36,19 +79,31 @@ export default function CommitteeScreen() {
 
         {/* Committee Members Cards */}
         <View style={styles.membersSection}>
-          {committeeMembers.map((member, index) => (
-            <View key={index} style={styles.memberCard}>
-              <Text style={styles.memberName}>{member.name} ({member.nameHindi})</Text>
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#1A3A69" />
+            </View>
+          )}
+
+          {!loading && members.map((member, index) => (
+            <View key={member._id || String(index)} style={styles.memberCard}>
+              <Text style={styles.memberName}>{member.nameEn} ({member.nameHi})</Text>
               <Pressable onPress={() => handlePhone(member.phone)} style={styles.contactRow}>
                 <MaterialIcons name="phone" size={20} color="#FF8C00" />
                 <Text style={styles.contactText}>{member.phone}</Text>
               </Pressable>
               <View style={styles.contactRow}>
                 <MaterialIcons name="location-on" size={20} color="#666666" />
-                <Text style={styles.locationText}>{member.location}</Text>
+                <Text style={styles.locationText}>{member.city}</Text>
               </View>
             </View>
           ))}
+
+          {!loading && hasNextPage && (
+            <TouchableOpacity onPress={onLoadMore} style={styles.loadMoreButton}>
+              <Text style={styles.loadMoreText}>Load more</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Footer */}
@@ -105,6 +160,10 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 16,
   },
+  loadingContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
   memberCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -134,6 +193,20 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 16,
     color: '#666666',
+  },
+  loadMoreButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1A3A69',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  loadMoreText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A3A69',
   },
   modalOverlay: {
     flex: 1,

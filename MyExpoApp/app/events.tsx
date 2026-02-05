@@ -1,38 +1,58 @@
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Linking } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
 import { AppFooter } from '@/components/app-footer';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
+import { contentAPI } from '@/services/api';
 
 export default function EventsScreen() {
 
-  const events = [
-    {
-      category: 'SPORTS',
-      title: 'Annual Sports Meet 2026',
-      date: 'March 15, 2026',
-      time: '8:00 AM - 5:00 PM',
-      location: 'Thali High School Ground',
-      description: 'Join us for a day of competitive sports, team spirit, and fun. Cricket, Volleyball, and Athletics competitions.',
-    },
-    {
-      category: 'HEALTH',
-      title: 'Blood Donation Camp',
-      date: 'April 02, 2026',
-      time: '9:00 AM - 2:00 PM',
-      location: 'Community Hall, Thali',
-      description: 'Be a hero, save a life. Our annual blood donation drive in partnership with District Hospital.',
-    },
-    {
-      category: 'CULTURE',
-      title: "Cultural Night 'Utsav'",
-      date: 'May 20, 2026',
-      time: '6:00 PM onwards',
-      location: 'Village Square',
-      description: 'An evening of dance, music, and drama showcasing our local talent and rich traditions.',
-    },
-  ];
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
+  const loadEvents = async (nextPage: number, mode: 'replace' | 'append') => {
+    try {
+      const response = await contentAPI.getEvents({ page: nextPage, limit: 30 });
+      const data = response?.data ?? [];
+      const pagination = response?.pagination;
+
+      setEvents((prev) => (mode === 'replace' ? data : [...prev, ...data]));
+      setHasNextPage(!!pagination?.hasNextPage);
+      setPage(pagination?.page ?? nextPage);
+    } catch (err: any) {
+      console.error('Load events error:', err?.response?.data || err?.message || err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents(1, 'replace');
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadEvents(1, 'replace');
+  };
+
+  const onLoadMore = () => {
+    if (!hasNextPage) return;
+    loadEvents(page + 1, 'append');
+  };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -52,7 +72,11 @@ export default function EventsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <AppHeader showBack={true} />
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
         {/* Hero Banner */}
         <View style={styles.heroBanner}>
           <Text style={styles.heroTitle}>Upcoming Events</Text>
@@ -63,8 +87,14 @@ export default function EventsScreen() {
 
         {/* Events Cards */}
         <View style={styles.eventsSection}>
-          {events.map((event, index) => (
-            <View key={index} style={styles.eventCard}>
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#1A3A69" />
+            </View>
+          )}
+
+          {!loading && events.map((event, index) => (
+            <View key={event._id || String(index)} style={styles.eventCard}>
               <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(event.category) }]}>
                 <Text style={styles.categoryText}>{event.category}</Text>
               </View>
@@ -86,6 +116,12 @@ export default function EventsScreen() {
               <Text style={styles.eventDescription}>{event.description}</Text>
             </View>
           ))}
+
+          {!loading && hasNextPage && (
+            <TouchableOpacity onPress={onLoadMore} style={styles.loadMoreButton}>
+              <Text style={styles.loadMoreText}>Load more</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Footer */}
@@ -125,6 +161,10 @@ const styles = StyleSheet.create({
   eventsSection: {
     padding: padding.md,
     gap: hp(2.5),
+  },
+  loadingContainer: {
+    paddingVertical: hp(3),
+    alignItems: 'center',
   },
   eventCard: {
     backgroundColor: '#FFFFFF',
@@ -172,5 +212,19 @@ const styles = StyleSheet.create({
     fontSize: fontScale(16),
     color: '#666666',
     lineHeight: fontScale(24),
+  },
+  loadMoreButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#1A3A69',
+    paddingVertical: hp(1.75),
+    borderRadius: wp(2),
+    alignItems: 'center',
+    marginTop: hp(1),
+  },
+  loadMoreText: {
+    fontSize: fontScale(16),
+    fontWeight: '700',
+    color: '#1A3A69',
   },
 });

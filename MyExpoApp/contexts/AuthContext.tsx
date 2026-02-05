@@ -94,7 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(response.user);
           return response.user;
         }
-      } else {: Promise<User> => {
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const signup = async (data: SignupData): Promise<User> => {
     try {
       const response = await authAPI.signup(data);
       
@@ -111,15 +120,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(response.user);
           return response.user;
         }
-
-  const signup = async (data: SignupData) => {
-    try {
-      const response = await authAPI.signup(data);
-      
-      if (response.success && response.token) {
-        await SecureStore.setItemAsync(TOKEN_KEY, response.token);
-        setToken(response.token);
-        setUser(response.user);
       } else {
         throw new Error(response.message || 'Signup failed');
       }
@@ -136,13 +136,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
-    }refreshUser = async () => {
+    }
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...userData } : prev));
+  };
+
+  const refreshUser = async () => {
     try {
-      if (token) {
-        const response = await authAPI.getMe(token);
-        if (response.success && response.user) {
-          setUser(response.user);
-        }
+      if (!token) return;
+      const response = await authAPI.getMe(token);
+      if (response.success && response.user) {
+        setUser(response.user);
       }
     } catch (error) {
       console.error('Error refreshing user:', error);
@@ -159,16 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signup,
     logout,
     updateUser,
-    refresh
-  const value: AuthContextType = {
-    user,
-    token,
-    isLoading,
-    isAuthenticated: !!user && !!token,
-    login,
-    signup,
-    logout,
-    updateUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
