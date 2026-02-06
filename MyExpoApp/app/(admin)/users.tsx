@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,54 +10,137 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { adminAPI } from '@/services/api';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
+
+type RoleFilter = 'all' | 'user' | 'admin';
+
+function getUserId(user: any): string {
+  return String(
+    user?._id ??
+      user?.id ??
+      user?.user?._id ??
+      user?.user?.id ??
+      ''
+  );
+}
+
+function getUserRole(user: any): 'user' | 'admin' {
+  const role = user?.role ?? user?.user?.role ?? 'user';
+  return role === 'admin' ? 'admin' : 'user';
+}
+
+function normalizeUser(user: any) {
+  const source = user?.user ? { ...user, ...user.user } : user || {};
+  return {
+    _id: getUserId(source),
+    name: source?.name ?? '-',
+    email: source?.email ?? '-',
+    phone: source?.phone ?? '',
+    memberId: source?.memberId ?? '-',
+    role: getUserRole(source),
+    createdAt: source?.createdAt,
+    raw: user,
+  };
+}
+
+function normalizePagination(p: any = {}) {
+  return {
+    page: Number(p?.page ?? p?.currentPage ?? 1),
+    pages: Number(p?.pages ?? p?.totalPages ?? 1),
+    total: Number(p?.total ?? p?.totalUsers ?? 0),
+    limit: Number(p?.limit ?? 10),
+  };
+}
+
+function toCSVValue(v: any) {
+  const str = String(v ?? '');
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
 
 export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
-  const [pagination, setPagination] = useState<any>({});
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: 10 });
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
+
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [editForm, setEditForm] = useState<any>({});
+  const [exporting, setExporting] = useState(false);
+
+  const [editForm, setEditForm] = useState<any>({
+    name: '',
+    email: '',
+    phone: '',
+    memberId: '',
+  });
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
 
+  const editScrollRef = useRef<ScrollView>(null);
+  const passScrollRef = useRef<ScrollView>(null);
+
   useEffect(() => {
     loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, roleFilter]);
 
-  const loadUsers = async () => {
+  const totalUsersText = useMemo(() => `${pagination.total || 0} total users`, [pagination.total]);
+
+  const loadUsers = async (opts?: { keepLoading?: boolean }) => {
+    const keepLoading = opts?.keepLoading ?? false;
     try {
+      if (!keepLoading) setLoading(true);
+
       const params: any = {
         page: currentPage,
         limit: 10,
-        search: search.trim(),
       };
-      if (roleFilter !== 'all') {
-        params.role = roleFilter;
-      }
+
+      const trimmed = search.trim();
+      if (trimmed) params.search = trimmed;
+      if (roleFilter !== 'all') params.role = roleFilter;
 
       const response = await adminAPI.getUsers(params);
-      if (response.success) {
-        setUsers(response.data);
-        setPagination(response.pagination);
-      }
+
+      // Defensive response handling
+      const listRaw =
+        response?.data?.data ??
+        response?.data ??
+        response?.users ??
+        [];
+
+      const pageRaw =
+        response?.data?.pagination ??
+        response?.pagination ??
+        {};
+
+      const normalized = Array.isArray(listRaw) ? listRaw.map(normalizeUser) : [];
+      setUsers(normalized);
+      setPagination(normalizePagination(pageRaw));
     } catch (err: any) {
       console.error('Load users error:', err);
-      Alert.alert('Error', err.response?.data?.message || 'Failed to load users');
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to load users');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,82 +149,123 @@ export default function AdminUsers() {
 
   const handleSearch = () => {
     setCurrentPage(1);
-    loadUsers();
+    loadUsers({ keepLoading: true });
+  };
+
+  const clearSearch = () => {
+    setSearch('');
+    setCurrentPage(1);
+    // give state a tick
+    setTimeout(() => loadUsers({ keepLoading: true }), 0);
   };
 
   const onRefresh = () => {
     setRefreshing(true);
     setCurrentPage(1);
-    loadUsers();
+    loadUsers({ keepLoading: true });
   };
 
   const viewUserDetails = async (userId: string) => {
+    if (!userId) {
+      Alert.alert('Error', 'Invalid user id');
+      return;
+    }
     try {
       const response = await adminAPI.getUserById(userId);
-      if (response.success) {
-        setSelectedUser(response.data);
-        setShowUserModal(true);
-      }
+      const detail = response?.data?.data ?? response?.data ?? response;
+      setSelectedUser(detail);
+      setShowUserModal(true);
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to load user details');
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to load user details');
     }
   };
 
   const startEdit = (user: any) => {
-    setEditForm({
-      name: user.name,
-      email: user.email,
-      phone: user.phone || '',
-      memberId: user.memberId,
-    });
+    const id = getUserId(user);
+    if (!id) {
+      Alert.alert('Error', 'Invalid user id');
+      return;
+    }
     setSelectedUser(user);
+    setEditForm({
+      name: user?.name ?? '',
+      email: user?.email ?? '',
+      phone: user?.phone ?? '',
+      memberId: user?.memberId ?? '',
+    });
     setShowEditModal(true);
   };
 
   const handleUpdate = async () => {
+    const userId = getUserId(selectedUser);
+    if (!userId) {
+      Alert.alert('Error', 'Invalid user id');
+      return;
+    }
+
     try {
-      const response = await adminAPI.updateUser(selectedUser._id, editForm);
-      if (response.success) {
+      const payload = {
+        name: editForm?.name?.trim(),
+        email: editForm?.email?.trim(),
+        phone: editForm?.phone?.trim(),
+        memberId: editForm?.memberId?.trim(),
+      };
+
+      const response = await adminAPI.updateUser(userId, payload);
+      if (response?.success || response?.data?.success || response?.status === 200) {
         Alert.alert('Success', 'User updated successfully');
         setShowEditModal(false);
-        loadUsers();
+        loadUsers({ keepLoading: true });
+      } else {
+        Alert.alert('Error', response?.message || 'Failed to update user');
       }
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to update user');
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to update user');
     }
   };
 
-  const handleRoleChange = async (userId: string, currentRole: string) => {
+  const handleRoleChange = async (user: any) => {
+    const userId = getUserId(user);
+    if (!userId) {
+      Alert.alert('Error', 'Invalid user id');
+      return;
+    }
+
+    const currentRole = getUserRole(user);
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     const action = newRole === 'admin' ? 'promote to admin' : 'demote to user';
-    
-    Alert.alert(
-      'Confirm Role Change',
-      `Are you sure you want to ${action}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            try {
-              const response = await adminAPI.updateUserRole(userId, newRole);
-              if (response.success) {
-                Alert.alert('Success', response.message);
-                loadUsers();
-              }
-            } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.message || 'Failed to update role');
+
+    Alert.alert('Confirm Role Change', `Are you sure you want to ${action}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm',
+        onPress: async () => {
+          try {
+            const response = await adminAPI.updateUserRole(userId, newRole);
+            if (response?.success || response?.data?.success) {
+              Alert.alert('Success', response?.message || 'Role updated');
+              loadUsers({ keepLoading: true });
+            } else {
+              Alert.alert('Error', response?.message || 'Failed to update role');
             }
-          },
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message || 'Failed to update role');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const handleDelete = async (userId: string, userName: string) => {
+  const handleDelete = async (user: any) => {
+    const userId = getUserId(user);
+    if (!userId) {
+      Alert.alert('Error', 'Invalid user id');
+      return;
+    }
+
     Alert.alert(
       'Delete User',
-      `Are you sure you want to delete ${userName}? This action cannot be undone.`,
+      `Are you sure you want to delete ${user?.name || 'this user'}? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -150,12 +274,14 @@ export default function AdminUsers() {
           onPress: async () => {
             try {
               const response = await adminAPI.deleteUser(userId, true);
-              if (response.success) {
+              if (response?.success || response?.data?.success) {
                 Alert.alert('Success', 'User deleted successfully');
-                loadUsers();
+                loadUsers({ keepLoading: true });
+              } else {
+                Alert.alert('Error', response?.message || 'Failed to delete user');
               }
             } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.message || 'Failed to delete user');
+              Alert.alert('Error', err?.response?.data?.message || 'Failed to delete user');
             }
           },
         },
@@ -164,6 +290,11 @@ export default function AdminUsers() {
   };
 
   const startPasswordChange = (user: any) => {
+    const userId = getUserId(user);
+    if (!userId) {
+      Alert.alert('Error', 'Invalid user id');
+      return;
+    }
     setSelectedUser(user);
     setPasswordForm({
       currentPassword: '',
@@ -174,6 +305,12 @@ export default function AdminUsers() {
   };
 
   const handlePasswordChange = async () => {
+    const userId = getUserId(selectedUser);
+    if (!userId) {
+      Alert.alert('Error', 'Invalid user id');
+      return;
+    }
+
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       Alert.alert('Error', 'All password fields are required');
       return;
@@ -191,18 +328,80 @@ export default function AdminUsers() {
 
     try {
       const response = await adminAPI.changeUserPassword(
-        selectedUser._id,
+        userId,
         passwordForm.currentPassword,
         passwordForm.newPassword
       );
-      if (response.success) {
+      if (response?.success || response?.data?.success) {
         Alert.alert('Success', 'Password changed successfully');
         setShowPasswordModal(false);
+      } else {
+        Alert.alert('Error', response?.message || 'Failed to change password');
       }
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to change password');
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to change password');
     }
   };
+
+  const handleExportUsersCSV = async () => {
+  if (exporting) return;
+
+  try {
+    setExporting(true);
+
+    if (!users || users.length === 0) {
+      Alert.alert('No data', 'There are no users to export.');
+      return;
+    }
+
+    const escapeCSV = (value: any) => {
+      const str = String(value ?? '');
+      if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+      return str;
+    };
+
+    const lines = [
+      'Name,Email,Member ID,Phone,Role,Created At',
+      ...users.map((u: any) =>
+        [
+          escapeCSV(u?.name),
+          escapeCSV(u?.email),
+          escapeCSV(u?.memberId),
+          escapeCSV(u?.phone || ''),
+          escapeCSV(u?.role),
+          escapeCSV(u?.createdAt ? new Date(u.createdAt).toLocaleString() : ''),
+        ].join(',')
+      ),
+    ];
+
+    const csvContent = lines.join('\n');
+    const fileName = `users_export_${Date.now()}.csv`;
+    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+    // IMPORTANT: use plain string 'utf8' instead of FileSystem.EncodingType.UTF8
+    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+      encoding: 'utf8' as any,
+    });
+
+    const canShare = await Sharing.isAvailableAsync();
+    if (canShare) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Export users',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } else {
+      Alert.alert('Export complete', `CSV saved at:\n${fileUri}`);
+    }
+  } catch (err: any) {
+    console.error('Export error:', err);
+    Alert.alert('Export failed', err?.message || 'Could not export users');
+  } finally {
+    setExporting(false);
+  }
+};
+
+
 
   if (loading) {
     return (
@@ -217,14 +416,12 @@ export default function AdminUsers() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'User Management', headerShown: false }} />
-      
-      {/* Header */}
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>User Management</Text>
-        <Text style={styles.headerSubtitle}>{pagination.total || 0} total users</Text>
+        <Text style={styles.headerSubtitle}>{totalUsersText}</Text>
       </View>
 
-      {/* Search & Filter */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <MaterialIcons name="search" size={20} color="#666" />
@@ -234,24 +431,40 @@ export default function AdminUsers() {
             value={search}
             onChangeText={setSearch}
             onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
           {search !== '' && (
-            <TouchableOpacity onPress={() => { setSearch(''); handleSearch(); }}>
+            <TouchableOpacity onPress={clearSearch}>
               <MaterialIcons name="close" size={20} color="#666" />
             </TouchableOpacity>
           )}
         </View>
+
         <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
           <MaterialIcons name="search" size={24} color="#FFF" />
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleExportUsersCSV}
+          style={[styles.exportButton, exporting && { opacity: 0.6 }]}
+          disabled={exporting}
+        >
+          {exporting ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <MaterialIcons name="download" size={22} color="#FFF" />
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* Role Filter */}
       <View style={styles.filterContainer}>
         {(['all', 'user', 'admin'] as const).map((role) => (
           <TouchableOpacity
             key={role}
-            onPress={() => { setRoleFilter(role); setCurrentPage(1); }}
+            onPress={() => {
+              setRoleFilter(role);
+              setCurrentPage(1);
+            }}
             style={[styles.filterButton, roleFilter === role && styles.filterButtonActive]}
           >
             <Text style={[styles.filterButtonText, roleFilter === role && styles.filterButtonTextActive]}>
@@ -261,54 +474,58 @@ export default function AdminUsers() {
         ))}
       </View>
 
-      {/* User List */}
       <ScrollView
         style={styles.content}
+        keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {users.map((user) => (
-          <View key={user._id} style={styles.userCard}>
-            <View style={styles.userInfo}>
-              <View style={styles.userHeader}>
-                <Text style={styles.userName}>{user.name}</Text>
-                {user.role === 'admin' && (
-                  <View style={styles.adminBadge}>
-                    <Text style={styles.adminBadgeText}>ADMIN</Text>
-                  </View>
+        {users.map((user) => {
+          const uid = getUserId(user);
+          return (
+            <View key={uid || Math.random().toString()} style={styles.userCard}>
+              <View style={styles.userInfo}>
+                <View style={styles.userHeader}>
+                  <Text style={styles.userName}>{user.name}</Text>
+                  {user.role === 'admin' && (
+                    <View style={styles.adminBadge}>
+                      <Text style={styles.adminBadgeText}>ADMIN</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.userDetail}>
+                  <MaterialIcons name="email" size={14} /> {user.email}
+                </Text>
+                <Text style={styles.userDetail}>
+                  <MaterialIcons name="badge" size={14} /> {user.memberId}
+                </Text>
+                {!!user.phone && (
+                  <Text style={styles.userDetail}>
+                    <MaterialIcons name="phone" size={14} /> {user.phone}
+                  </Text>
                 )}
               </View>
-              <Text style={styles.userDetail}>
-                <MaterialIcons name="email" size={14} /> {user.email}
-              </Text>
-              <Text style={styles.userDetail}>
-                <MaterialIcons name="badge" size={14} /> {user.memberId}
-              </Text>
-              {user.phone && (
-                <Text style={styles.userDetail}>
-                  <MaterialIcons name="phone" size={14} /> {user.phone}
-                </Text>
-              )}
-            </View>
 
-            <View style={styles.userActions}>
-              <TouchableOpacity onPress={() => viewUserDetails(user._id)} style={styles.actionButton}>
-                <MaterialIcons name="visibility" size={20} color="#2196F3" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => startEdit(user)} style={styles.actionButton}>
-                <MaterialIcons name="edit" size={20} color="#4CAF50" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => startPasswordChange(user)} style={styles.actionButton}>
-                <MaterialIcons name="lock" size={20} color="#FF9800" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleRoleChange(user._id, user.role)} style={styles.actionButton}>
-                <MaterialIcons name="admin-panel-settings" size={20} color="#FF9800" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(user._id, user.name)} style={styles.actionButton}>
-                <MaterialIcons name="delete" size={20} color="#FF3B30" />
-              </TouchableOpacity>
+              <View style={styles.userActions}>
+                <TouchableOpacity onPress={() => viewUserDetails(uid)} style={styles.actionButton}>
+                  <MaterialIcons name="visibility" size={20} color="#2196F3" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => startEdit(user)} style={styles.actionButton}>
+                  <MaterialIcons name="edit" size={20} color="#4CAF50" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => startPasswordChange(user)} style={styles.actionButton}>
+                  <MaterialIcons name="lock" size={20} color="#FF9800" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleRoleChange(user)} style={styles.actionButton}>
+                  <MaterialIcons name="admin-panel-settings" size={20} color="#FF9800" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(user)} style={styles.actionButton}>
+                  <MaterialIcons name="delete" size={20} color="#FF3B30" />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
 
         {users.length === 0 && (
           <View style={styles.emptyContainer}>
@@ -317,7 +534,6 @@ export default function AdminUsers() {
           </View>
         )}
 
-        {/* Pagination */}
         {pagination.pages > 1 && (
           <View style={styles.pagination}>
             <TouchableOpacity
@@ -327,11 +543,11 @@ export default function AdminUsers() {
             >
               <MaterialIcons name="chevron-left" size={24} color={currentPage === 1 ? '#CCC' : '#1A3A69'} />
             </TouchableOpacity>
-            
+
             <Text style={styles.paginationText}>
               Page {currentPage} of {pagination.pages}
             </Text>
-            
+
             <TouchableOpacity
               onPress={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
               disabled={currentPage === pagination.pages}
@@ -344,7 +560,7 @@ export default function AdminUsers() {
       </ScrollView>
 
       {/* User Details Modal */}
-      <Modal visible={showUserModal} animationType="slide" transparent>
+      <Modal visible={showUserModal} animationType="slide" transparent onRequestClose={() => setShowUserModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -353,44 +569,54 @@ export default function AdminUsers() {
                 <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-            
-            {selectedUser && (
-              <ScrollView style={styles.modalBody}>
-                <Text style={styles.detailLabel}>Name:</Text>
-                <Text style={styles.detailValue}>{selectedUser.user?.name}</Text>
-                
-                <Text style={styles.detailLabel}>Email:</Text>
-                <Text style={styles.detailValue}>{selectedUser.user?.email}</Text>
-                
-                <Text style={styles.detailLabel}>Member ID:</Text>
-                <Text style={styles.detailValue}>{selectedUser.user?.memberId}</Text>
-                
-                <Text style={styles.detailLabel}>Role:</Text>
-                <Text style={styles.detailValue}>{selectedUser.user?.role}</Text>
-                
-                {selectedUser.user?.phone && (
+
+            <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
+              {(() => {
+                const u = selectedUser?.user ? selectedUser.user : selectedUser;
+                if (!u) return null;
+                return (
                   <>
-                    <Text style={styles.detailLabel}>Phone:</Text>
-                    <Text style={styles.detailValue}>{selectedUser.user.phone}</Text>
+                    <Text style={styles.detailLabel}>Name:</Text>
+                    <Text style={styles.detailValue}>{u?.name ?? '-'}</Text>
+
+                    <Text style={styles.detailLabel}>Email:</Text>
+                    <Text style={styles.detailValue}>{u?.email ?? '-'}</Text>
+
+                    <Text style={styles.detailLabel}>Member ID:</Text>
+                    <Text style={styles.detailValue}>{u?.memberId ?? '-'}</Text>
+
+                    <Text style={styles.detailLabel}>Role:</Text>
+                    <Text style={styles.detailValue}>{u?.role ?? '-'}</Text>
+
+                    {!!u?.phone && (
+                      <>
+                        <Text style={styles.detailLabel}>Phone:</Text>
+                        <Text style={styles.detailValue}>{u.phone}</Text>
+                      </>
+                    )}
+
+                    <Text style={styles.detailLabel}>Family Tree Entries:</Text>
+                    <Text style={styles.detailValue}>{selectedUser?.familyTreeCount ?? 0} entries (view-only)</Text>
+
+                    <Text style={styles.detailLabel}>Joined:</Text>
+                    <Text style={styles.detailValue}>
+                      {u?.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
+                    </Text>
                   </>
-                )}
-                
-                <Text style={styles.detailLabel}>Family Tree Entries:</Text>
-                <Text style={styles.detailValue}>{selectedUser.familyTreeCount} entries (view-only)</Text>
-                
-                <Text style={styles.detailLabel}>Joined:</Text>
-                <Text style={styles.detailValue}>
-                  {new Date(selectedUser.user?.createdAt).toLocaleDateString()}
-                </Text>
-              </ScrollView>
-            )}
+                );
+              })()}
+            </ScrollView>
           </View>
         </View>
       </Modal>
 
       {/* Edit User Modal */}
-      <Modal visible={showEditModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+      <Modal visible={showEditModal} animationType="slide" transparent onRequestClose={() => setShowEditModal(false)}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit User</Text>
@@ -398,50 +624,67 @@ export default function AdminUsers() {
                 <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-            
-            <ScrollView style={styles.modalBody}>
+
+            <ScrollView
+              ref={editScrollRef}
+              style={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: hp(4) }}
+            >
               <Text style={styles.inputLabel}>Name</Text>
               <TextInput
                 style={styles.input}
                 value={editForm.name}
-                onChangeText={(text) => setEditForm({ ...editForm, name: text })}
+                onChangeText={(text) => setEditForm((prev: any) => ({ ...prev, name: text }))}
+                returnKeyType="next"
+                onFocus={() => editScrollRef.current?.scrollTo({ y: 40, animated: true })}
               />
-              
+
               <Text style={styles.inputLabel}>Email</Text>
               <TextInput
                 style={styles.input}
                 value={editForm.email}
-                onChangeText={(text) => setEditForm({ ...editForm, email: text })}
+                onChangeText={(text) => setEditForm((prev: any) => ({ ...prev, email: text }))}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                returnKeyType="next"
+                onFocus={() => editScrollRef.current?.scrollTo({ y: 120, animated: true })}
               />
-              
+
               <Text style={styles.inputLabel}>Member ID</Text>
               <TextInput
                 style={styles.input}
                 value={editForm.memberId}
-                onChangeText={(text) => setEditForm({ ...editForm, memberId: text })}
+                onChangeText={(text) => setEditForm((prev: any) => ({ ...prev, memberId: text }))}
+                returnKeyType="next"
+                onFocus={() => editScrollRef.current?.scrollTo({ y: 220, animated: true })}
               />
-              
+
               <Text style={styles.inputLabel}>Phone</Text>
               <TextInput
                 style={styles.input}
                 value={editForm.phone}
-                onChangeText={(text) => setEditForm({ ...editForm, phone: text })}
+                onChangeText={(text) => setEditForm((prev: any) => ({ ...prev, phone: text }))}
                 keyboardType="phone-pad"
+                returnKeyType="done"
+                onFocus={() => editScrollRef.current?.scrollTo({ y: 300, animated: true })}
               />
-              
+
               <TouchableOpacity onPress={handleUpdate} style={styles.saveButton}>
                 <Text style={styles.saveButtonText}>Save Changes</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Change Password Modal */}
-      <Modal visible={showPasswordModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+      <Modal visible={showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Change Password</Text>
@@ -449,33 +692,41 @@ export default function AdminUsers() {
                 <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-            
-            <ScrollView style={styles.modalBody}>
+
+            <ScrollView
+              ref={passScrollRef}
+              style={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: hp(4) }}
+            >
               <Text style={styles.inputLabel}>Current Password*</Text>
               <TextInput
                 style={styles.input}
                 value={passwordForm.currentPassword}
-                onChangeText={(text) => setPasswordForm({ ...passwordForm, currentPassword: text })}
+                onChangeText={(text) => setPasswordForm((prev) => ({ ...prev, currentPassword: text }))}
                 secureTextEntry
                 placeholder="Enter current password"
+                onFocus={() => passScrollRef.current?.scrollTo({ y: 40, animated: true })}
               />
-              
+
               <Text style={styles.inputLabel}>New Password* (min 6 characters)</Text>
               <TextInput
                 style={styles.input}
                 value={passwordForm.newPassword}
-                onChangeText={(text) => setPasswordForm({ ...passwordForm, newPassword: text })}
+                onChangeText={(text) => setPasswordForm((prev) => ({ ...prev, newPassword: text }))}
                 secureTextEntry
                 placeholder="Enter new password"
+                onFocus={() => passScrollRef.current?.scrollTo({ y: 160, animated: true })}
               />
-              
+
               <Text style={styles.inputLabel}>Confirm New Password*</Text>
               <TextInput
                 style={styles.input}
                 value={passwordForm.confirmPassword}
-                onChangeText={(text) => setPasswordForm({ ...passwordForm, confirmPassword: text })}
+                onChangeText={(text) => setPasswordForm((prev) => ({ ...prev, confirmPassword: text }))}
                 secureTextEntry
                 placeholder="Re-enter new password"
+                onFocus={() => passScrollRef.current?.scrollTo({ y: 260, animated: true })}
               />
 
               <View style={styles.passwordNote}>
@@ -484,50 +735,32 @@ export default function AdminUsers() {
                   After changing password, please update ENABLE_ADMIN_BOOTSTRAP=false on Render to prevent reset.
                 </Text>
               </View>
-              
+
               <TouchableOpacity onPress={handlePasswordChange} style={styles.saveButton}>
                 <Text style={styles.saveButtonText}>Change Password</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
   header: {
     backgroundColor: '#1A3A69',
     paddingHorizontal: padding.lg,
     paddingTop: hp(6),
     paddingBottom: hp(2),
   },
-  headerTitle: {
-    fontSize: fontScale(24),
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: fontScale(14),
-    color: '#FFFFFF',
-    opacity: 0.8,
-    marginTop: hp(0.5),
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    padding: padding.md,
-    gap: padding.sm,
-  },
+  headerTitle: { fontSize: fontScale(24), fontWeight: '700', color: '#FFFFFF' },
+  headerSubtitle: { fontSize: fontScale(14), color: '#FFFFFF', opacity: 0.8, marginTop: hp(0.5) },
+
+  searchContainer: { flexDirection: 'row', padding: padding.md, gap: padding.sm },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -537,11 +770,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: padding.md,
     gap: padding.sm,
   },
-  searchInput: {
-    flex: 1,
-    paddingVertical: padding.md,
-    fontSize: fontScale(14),
-  },
+  searchInput: { flex: 1, paddingVertical: padding.md, fontSize: fontScale(14) },
   searchButton: {
     backgroundColor: '#1A3A69',
     padding: padding.md,
@@ -549,6 +778,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  exportButton: {
+    backgroundColor: '#2E7D32',
+    padding: padding.md,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: padding.md,
@@ -563,20 +800,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  filterButtonActive: {
-    backgroundColor: '#1A3A69',
-  },
-  filterButtonText: {
-    fontSize: fontScale(14),
-    color: '#666',
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
+  filterButtonActive: { backgroundColor: '#1A3A69' },
+  filterButtonText: { fontSize: fontScale(14), color: '#666' },
+  filterButtonTextActive: { color: '#FFFFFF', fontWeight: '600' },
+
+  content: { flex: 1 },
+
   userCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: padding.md,
@@ -585,81 +814,47 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: padding.sm,
   },
-  userInfo: {
-    flex: 1,
-  },
-  userHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp(0.5),
-  },
-  userName: {
-    fontSize: fontScale(16),
-    fontWeight: '600',
-    color: '#333',
-  },
-  adminBadge: {
-    backgroundColor: '#FF9800',
-    paddingHorizontal: padding.sm,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: padding.sm,
-  },
-  adminBadgeText: {
-    fontSize: fontScale(10),
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  userDetail: {
-    fontSize: fontScale(13),
-    color: '#666',
-    marginTop: hp(0.3),
-  },
+  userInfo: { flex: 1 },
+  userHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: hp(0.5), flexWrap: 'wrap' },
+  userName: { fontSize: fontScale(16), fontWeight: '600', color: '#333' },
+  adminBadge: { backgroundColor: '#FF9800', paddingHorizontal: padding.sm, paddingVertical: 2, borderRadius: 4, marginLeft: padding.sm },
+  adminBadgeText: { fontSize: fontScale(10), fontWeight: '700', color: '#FFFFFF' },
+  userDetail: { fontSize: fontScale(13), color: '#666', marginTop: hp(0.3) },
+
   userActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: padding.sm,
+    maxWidth: wp(30),
+    justifyContent: 'flex-end',
   },
   actionButton: {
     padding: padding.sm,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 8,
   },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: hp(8),
-  },
-  emptyText: {
-    fontSize: fontScale(16),
-    color: '#999',
-    marginTop: hp(2),
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: hp(2),
-    gap: padding.lg,
-  },
-  paginationButton: {
-    padding: padding.sm,
-  },
-  paginationButtonDisabled: {
-    opacity: 0.3,
-  },
-  paginationText: {
-    fontSize: fontScale(14),
-    color: '#666',
-  },
+
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: hp(8) },
+  emptyText: { fontSize: fontScale(16), color: '#999', marginTop: hp(2) },
+
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: hp(2), gap: padding.lg },
+  paginationButton: { padding: padding.sm },
+  paginationButtonDisabled: { opacity: 0.3 },
+  paginationText: { fontSize: fontScale(14), color: '#666' },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: padding.md,
   },
   modalContent: {
-    width: wp(90),
-    maxHeight: hp(80),
+    width: wp(92),
+    maxHeight: hp(82),
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
@@ -672,30 +867,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  modalTitle: {
-    fontSize: fontScale(18),
-    fontWeight: '600',
-    color: '#333',
-  },
-  modalBody: {
-    padding: padding.lg,
-  },
-  detailLabel: {
-    fontSize: fontScale(12),
-    color: '#999',
-    marginTop: hp(1.5),
-    marginBottom: hp(0.5),
-  },
-  detailValue: {
-    fontSize: fontScale(16),
-    color: '#333',
-  },
-  inputLabel: {
-    fontSize: fontScale(14),
-    color: '#666',
-    marginTop: hp(1.5),
-    marginBottom: hp(0.5),
-  },
+  modalTitle: { fontSize: fontScale(18), fontWeight: '600', color: '#333' },
+  modalBody: { padding: padding.lg },
+
+  detailLabel: { fontSize: fontScale(12), color: '#999', marginTop: hp(1.5), marginBottom: hp(0.5) },
+  detailValue: { fontSize: fontScale(16), color: '#333' },
+
+  inputLabel: { fontSize: fontScale(14), color: '#666', marginTop: hp(1.5), marginBottom: hp(0.5) },
   input: {
     borderWidth: 1,
     borderColor: '#DDD',
@@ -703,19 +881,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: padding.md,
     paddingVertical: padding.sm,
     fontSize: fontScale(14),
+    backgroundColor: '#FFF',
   },
+
   saveButton: {
     backgroundColor: '#4CAF50',
     paddingVertical: padding.md,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: hp(2),
+    marginBottom: hp(1),
   },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: fontScale(16),
-    fontWeight: '600',
-  },
+  saveButtonText: { color: '#FFFFFF', fontSize: fontScale(16), fontWeight: '600' },
+
   passwordNote: {
     flexDirection: 'row',
     gap: padding.sm,

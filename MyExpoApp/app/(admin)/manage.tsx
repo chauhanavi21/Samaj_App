@@ -14,6 +14,7 @@ import {
 import { Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { adminAPI } from '@/services/api';
+import { KeyboardSafeScroll } from '@/components/keyboard-safe-scroll';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 type ContentType = 'committee' | 'sponsors' | 'offers' | 'events' | 'places';
@@ -390,11 +391,7 @@ export default function AdminManage() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.typeRow}
-      >
+      <View style={styles.typeGrid}>
         {(Object.keys(TYPE_LABEL) as ContentType[]).map((key) => {
           const active = key === type;
           return (
@@ -403,11 +400,16 @@ export default function AdminManage() {
               onPress={() => setType(key)}
               style={[styles.typeButton, active && styles.typeButtonActive]}
             >
-              <Text style={[styles.typeButtonText, active && styles.typeButtonTextActive]}>{TYPE_LABEL[key]}</Text>
+              <Text
+                style={[styles.typeButtonText, active && styles.typeButtonTextActive]}
+                numberOfLines={2}
+              >
+                {TYPE_LABEL[key]}
+              </Text>
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
 
       <ScrollView
         style={styles.content}
@@ -463,13 +465,13 @@ export default function AdminManage() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <KeyboardSafeScroll style={styles.modalScroll} contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
               {renderFormFields()}
 
               <TouchableOpacity onPress={save} style={styles.saveButton}>
                 <Text style={styles.saveButtonText}>{editingItem ? 'Save Changes' : 'Create'}</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </KeyboardSafeScroll>
           </View>
         </View>
       </Modal>
@@ -511,10 +513,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  typeRow: {
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingHorizontal: padding.md,
     paddingVertical: hp(1.5),
-    gap: wp(2.5),
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
@@ -522,10 +526,15 @@ const styles = StyleSheet.create({
   typeButton: {
     borderWidth: 2,
     borderColor: '#E0E0E0',
-    paddingVertical: hp(1),
-    paddingHorizontal: padding.md,
-    borderRadius: wp(6),
+    width: '48%',
+    paddingVertical: hp(1.25),
+    paddingHorizontal: padding.sm,
+    borderRadius: wp(3),
     backgroundColor: '#FFFFFF',
+    marginBottom: hp(1),
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: hp(5.5),
   },
   typeButtonActive: {
     borderColor: '#1A3A69',
@@ -535,6 +544,7 @@ const styles = StyleSheet.create({
     fontSize: fontScale(14),
     fontWeight: '700',
     color: '#666666',
+    textAlign: 'center',
   },
   typeButtonTextActive: {
     color: '#1A3A69',
@@ -631,7 +641,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F0',
     borderTopLeftRadius: wp(6),
     borderTopRightRadius: wp(6),
-    maxHeight: '90%',
+    height: '90%',
   },
   modalHeader: {
     padding: padding.md,
@@ -651,6 +661,9 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: padding.md,
+  },
+  modalScroll: {
+    flex: 1,
   },
   inputLabel: {
     fontSize: fontScale(13),

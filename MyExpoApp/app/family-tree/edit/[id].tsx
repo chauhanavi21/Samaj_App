@@ -5,13 +5,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { familyTreeAPI } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { KeyboardSafeScroll } from '@/components/keyboard-safe-scroll';
 
 interface Child {
   name: string;
@@ -152,7 +152,11 @@ export default function EditFamilyTreeScreen() {
         <View style={{ width: 60 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <KeyboardSafeScroll
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Person Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Person Information</Text>
@@ -335,7 +339,7 @@ export default function EditFamilyTreeScreen() {
             <Text style={styles.submitButtonText}>Update Entry</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardSafeScroll>
     </View>
     </>
   );
