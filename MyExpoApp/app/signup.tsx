@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, PendingApprovalError } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/app-header';
 import { router, Stack } from 'expo-router';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
@@ -66,6 +66,22 @@ export default function SignupScreen() {
       ]);
     } catch (err: any) {
       console.error('Signup error:', err);
+      
+      // Handle pending approval
+      if (err instanceof PendingApprovalError || err.name === 'PendingApprovalError') {
+        Alert.alert(
+          'Signup Received',
+          'Your signup request has been received. Our admin team will review your application within 48 hours. You will be notified once approved. Please try signing in again after approval.',
+          [
+            { 
+              text: 'OK', 
+              onPress: () => router.replace('/login')
+            }
+          ]
+        );
+        return;
+      }
+      
       const errorMessage = err.response?.data?.message || err.message || 'Signup failed. Please try again.';
       Alert.alert('Signup Failed', errorMessage);
     } finally {

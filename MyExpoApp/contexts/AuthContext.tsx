@@ -9,6 +9,24 @@ interface User {
   role: 'user' | 'admin';
   phone?: string;
   memberId?: string;
+  accountStatus?: 'pending' | 'approved' | 'rejected';
+  verificationStatus?: 'verified' | 'unverified' | 'pending_admin';
+}
+
+// Custom error class for pending approval
+export class PendingApprovalError extends Error {
+  constructor(message: string, public user?: any) {
+    super(message);
+    this.name = 'PendingApprovalError';
+  }
+}
+
+// Custom error class for rejected account
+export class AccountRejectedError extends Error {
+  constructor(message: string, public rejectionReason?: string) {
+    super(message);
+    this.name = 'AccountRejectedError';
+  }
 }
 
 interface AuthContextType {
@@ -81,6 +99,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authAPI.login(email, password);
       
+      // Check for pending or rejected status
+      if (!response.success) {
+        if (response.accountStatus === 'pending' || response.requiresApproval) {
+          throw new PendingApprovalError(
+            response.message || 'Your account is pending admin approval. You will be notified within 48 hours.'
+          );
+        }
+        
+        if (response.accountStatus === 'rejected') {
+          throw new AccountRejectedError(
+            response.message || 'Your account registration was not approved.',
+            response.rejectionReason
+          );
+        }
+        
+        throw new Error(response.message || 'Login failed');
+      }
+      
       if (response.success && response.token) {
         await SecureStore.setItemAsync(TOKEN_KEY, response.token);
         setToken(response.token);
@@ -89,6 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const meResponse = await authAPI.getMe(response.token);
         if (meResponse.success && meResponse.user) {
           setUser(meResponse.user);
+      // Check if signup requires approval (pending status)
+      if (response.requiresApproval || response.user?.accountStatus === 'pending') {
+        throw new PendingApprovalError(
+          response.message || 'Your signup request has been received. Our admin team will review your application within 48 hours. You will be notified once approved.',
+          response.user
+        );
+      }
+      
           return meResponse.user;
         } else {
           setUser(response.user);

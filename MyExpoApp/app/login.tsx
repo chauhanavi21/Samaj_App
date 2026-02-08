@@ -9,7 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, PendingApprovalError, AccountRejectedError } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/app-header';
 import { router, Stack } from 'expo-router';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
@@ -40,6 +40,27 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       console.error('Login error:', err);
+      
+      // Handle pending approval
+      if (err instanceof PendingApprovalError || err.name === 'PendingApprovalError') {
+        Alert.alert(
+          'Account Pending Approval',
+          'Your account is pending admin approval. You will be notified within 48 hours. Please try signing in again after approval.',
+          [{ text: 'OK', style: 'default' }]
+        );
+        return;
+      }
+      
+      // Handle rejected account
+      if (err instanceof AccountRejectedError || err.name === 'AccountRejectedError') {
+        Alert.alert(
+          'Account Not Approved',
+          err.message + (err.rejectionReason ? `\n\nReason: ${err.rejectionReason}` : ''),
+          [{ text: 'Contact Support', style: 'default' }]
+        );
+        return;
+      }
+      
       const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
       Alert.alert('Login Failed', errorMessage);
     } finally {
