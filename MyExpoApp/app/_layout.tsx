@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
+import { Alert } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
-
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/contexts/AuthContext';
 
@@ -13,6 +14,9 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  useEffect(() => {
+    Alert.alert('Thank you Drishti nahata for Sponsring the app');
+  }, []);
 
   return (
     <SafeAreaProvider>
@@ -32,6 +36,8 @@ export default function RootLayout() {
             <Stack.Screen name="temples" options={{ headerShown: false }} />
             <Stack.Screen name="gallery" options={{ headerShown: false }} />
             <Stack.Screen name="contact" options={{ headerShown: false }} />
+            <Stack.Screen name="information" options={{ headerShown: false }} />
+            <Stack.Screen name="information/[id]" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

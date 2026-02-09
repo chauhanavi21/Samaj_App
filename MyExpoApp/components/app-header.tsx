@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity, Modal, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
+import type { Href } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState } from 'react';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
@@ -39,79 +40,97 @@ export function AppHeader({ showBack = true }: { showBack?: boolean }) {
       {/* Navigation Menu Modal */}
       <Modal
         visible={menuVisible}
-        transparent={true}
+        transparent
         animationType="slide"
-        onRequestClose={() => setMenuVisible(false)}>
+        statusBarTranslucent
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        {/* Backdrop */}
         <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
-          <View style={styles.menuContainer}>
+          {/* Stop propagation so taps inside menu do not close immediately */}
+          <Pressable style={styles.menuContainer} onPress={(e) => e.stopPropagation()}>
             <View style={styles.menuHeader}>
               <Text style={styles.menuTitle}>Menu</Text>
               <TouchableOpacity onPress={() => setMenuVisible(false)}>
                 <MaterialIcons name="close" size={24} color="#1A3A69" />
               </TouchableOpacity>
             </View>
+
             <View style={styles.menuItems}>
               <Link href="/(tabs)" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Home</Text>
                 </TouchableOpacity>
               </Link>
+
               <Link href="/about-us" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>About</Text>
                 </TouchableOpacity>
               </Link>
+
+              {/* New: Information after About */}
+              <Link href={'/information' as Href} asChild>
+                <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+                  <Text style={styles.menuItemText}>Information</Text>
+                </TouchableOpacity>
+              </Link>
+
               <Link href="/committee" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Committee</Text>
                 </TouchableOpacity>
               </Link>
+
               <Link href="/sponsors" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Sponsors</Text>
                 </TouchableOpacity>
               </Link>
+
               <Link href="/offers" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Offers</Text>
                 </TouchableOpacity>
               </Link>
+
               <Link href="/temples" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Temples</Text>
                 </TouchableOpacity>
               </Link>
+
               <Link href="/events" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Events</Text>
                 </TouchableOpacity>
               </Link>
+
               <Link href="/gallery" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Gallery</Text>
                 </TouchableOpacity>
               </Link>
+
               <Link href="/contact" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
                   <Text style={styles.menuItemText}>Contact</Text>
                 </TouchableOpacity>
               </Link>
-              
+
               {/* Authentication Links */}
               {isAuthenticated ? (
-                <>
-                  <Link href="/profile" asChild>
-                    <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                      <MaterialIcons name="person" size={20} color="#1A3A69" style={styles.menuIcon} />
-                      <Text style={styles.menuItemText}>Profile</Text>
-                      {user?.role === 'admin' && (
-                        <View style={styles.adminBadge}>
-                          <Text style={styles.adminBadgeText}>Admin</Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  </Link>
-                </>
+                <Link href="/profile" asChild>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+                    <MaterialIcons name="person" size={20} color="#1A3A69" style={styles.menuIcon} />
+                    <Text style={styles.menuItemText}>Profile</Text>
+                    {user?.role === 'admin' && (
+                      <View style={styles.adminBadge}>
+                        <Text style={styles.adminBadgeText}>Admin</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </Link>
               ) : (
                 <>
                   <Link href="/login" asChild>
@@ -127,6 +146,7 @@ export function AppHeader({ showBack = true }: { showBack?: boolean }) {
                 </>
               )}
             </View>
+
             {!isAuthenticated && (
               <Link href="/signup" asChild>
                 <TouchableOpacity style={styles.joinUsButton} onPress={() => setMenuVisible(false)}>
@@ -134,7 +154,7 @@ export function AppHeader({ showBack = true }: { showBack?: boolean }) {
                 </TouchableOpacity>
               </Link>
             )}
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </>

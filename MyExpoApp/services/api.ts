@@ -120,6 +120,24 @@ export const authAPI = {
   },
 };
 
+// Information API functions
+export const informationAPI = {
+  // Search users by name
+  search: async (name: string) => {
+    const response = await api.get('/information/search', {
+      params: { name },
+    });
+    return response.data;
+  },
+
+  // Get single information record by id
+  getById: async (id: string) => {
+    const response = await api.get(`/information/${id}`);
+    return response.data;
+  },
+};
+
+
 // Family Tree API functions
 export const familyTreeAPI = {
   // Get all family tree entries
@@ -323,5 +341,6 @@ export const adminAPI = {
     return response.data;
   },
 };
+
 
 export default api;

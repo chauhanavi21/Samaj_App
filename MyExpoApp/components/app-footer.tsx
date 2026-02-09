@@ -44,6 +44,14 @@ export function AppFooter() {
             <Text style={styles.linkText}>About Us</Text>
           </Pressable>
         </Link>
+
+        {/* Added exactly after About Us */}
+        <Link href="/information" asChild>
+          <Pressable>
+            <Text style={styles.linkText}>Information</Text>
+          </Pressable>
+        </Link>
+
         <Link href="/events" asChild>
           <Pressable>
             <Text style={styles.linkText}>Upcoming Events</Text>
@@ -67,7 +75,9 @@ export function AppFooter() {
         <Pressable onPress={() => handleContact('address', '')}>
           <View style={styles.contactRow}>
             <MaterialIcons name="location-on" size={20} color="#FF8C00" />
-            <Text style={styles.contactText}>123 Main Street, Thali Village, District, State, 123456</Text>
+            <Text style={styles.contactText}>
+              123 Main Street, Thali Village, District, State, 123456
+            </Text>
           </View>
         </Pressable>
         <Pressable onPress={() => handleContact('phone', '+919876543210')}>
