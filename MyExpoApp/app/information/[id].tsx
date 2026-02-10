@@ -9,23 +9,22 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { informationAPI } from '../../services/api';
+import { getInformationById, InformationRecord } from '../../services/informationService';
 
-type InfoRecord = {
-  _id: string;
-  firstName?: string | null;
-  middleName?: string | null;
-  lastName?: string | null;
-  fullName?: string | null;
-  number?: string | null;
-  memberId?: string | null;
-};
+/*
+ * Information detail screen
+ *
+ * Shows the details of a single record from the `information` collection.
+ * Displays first name, middle name, last name, full name, member ID and
+ * phone number. If a field is missing, displays "Not provided". A
+ * back button allows navigation back to the search results.
+ */
 
 export default function InformationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  const [record, setRecord] = useState<InfoRecord | null>(null);
+  const [record, setRecord] = useState<InformationRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,18 +33,16 @@ export default function InformationDetailScreen() {
         setLoading(false);
         return;
       }
-
       try {
-        const res = await informationAPI.getById(id);
-        setRecord(res?.data ?? null);
-      } catch (error) {
-        console.error('Fetch failed', error);
+        const doc = await getInformationById(String(id));
+        setRecord(doc);
+      } catch (err) {
+        console.error('Fetch failed', err);
         setRecord(null);
       } finally {
         setLoading(false);
       }
     }
-
     fetchData();
   }, [id]);
 
@@ -74,9 +71,7 @@ export default function InformationDetailScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centered}>
           <Text style={styles.notFoundTitle}>Record not found</Text>
-          <Text style={styles.notFoundSub}>
-            We couldn’t find this member record.
-          </Text>
+          <Text style={styles.notFoundSub}>We couldn’t find this information record.</Text>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Go Back</Text>
           </Pressable>
@@ -88,16 +83,16 @@ export default function InformationDetailScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Member Details</Text>
-        <Text style={styles.pageSubtitle}>Complete information from database record</Text>
+        <Text style={styles.pageTitle}>Information Details</Text>
+        <Text style={styles.pageSubtitle}>Complete record imported from Excel</Text>
 
         <View style={styles.card}>
-          <Field label="Name" value={displayName} />
+          <Field label="Full Name" value={displayName} />
           <Field label="First Name" value={record.firstName || 'Not provided'} />
           <Field label="Middle Name" value={record.middleName || 'Not provided'} />
           <Field label="Last Name" value={record.lastName || 'Not provided'} />
-          <Field label="Number" value={record.number || 'Not provided'} />
           <Field label="Member ID" value={record.memberId || 'Not provided'} />
+          <Field label="Number" value={record.number || 'Not provided'} />
         </View>
 
         <Pressable style={styles.backButton} onPress={() => router.back()}>

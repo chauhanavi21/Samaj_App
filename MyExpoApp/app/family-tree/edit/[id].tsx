@@ -26,6 +26,7 @@ export default function EditFamilyTreeScreen() {
   const [saving, setSaving] = useState(false);
 
   // Form state
+  const [memberId, setMemberId] = useState('');
   const [personName, setPersonName] = useState('');
   const [personPhone, setPersonPhone] = useState('');
   const [personOccupation, setPersonOccupation] = useState('');
@@ -48,6 +49,7 @@ export default function EditFamilyTreeScreen() {
       const response = await familyTreeAPI.getById(id as string);
       if (response.success) {
         const data = response.data;
+        setMemberId(data.memberId || '');
         setPersonName(data.personName || '');
         setPersonPhone(data.personPhone || '');
         setPersonOccupation(data.personOccupation || '');
@@ -160,6 +162,14 @@ export default function EditFamilyTreeScreen() {
         {/* Person Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Person Information</Text>
+
+          <Text style={styles.label}>Member ID (Locked)</Text>
+          <TextInput
+            style={[styles.input, styles.inputDisabled]}
+            placeholder="Member ID"
+            value={memberId}
+            editable={false}
+          />
           
           <Text style={styles.label}>Name *</Text>
           <TextInput
@@ -424,6 +434,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#E5E5E5',
+  },
+  inputDisabled: {
+    opacity: 0.7,
   },
   textArea: {
     minHeight: 80,

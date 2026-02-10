@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { authAPI } from '@/services/api';
+import { authAPI, setApiAuthToken } from '@/services/api';
 
 interface User {
   id: string;
@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
       
       if (storedToken) {
+        setApiAuthToken(storedToken);
         setToken(storedToken);
         // Fetch user data with role from /api/auth/me
         try {
@@ -78,18 +79,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             // Invalid token, clear it
             await SecureStore.deleteItemAsync(TOKEN_KEY);
+            setApiAuthToken(null);
             setToken(null);
           }
         } catch (error) {
           console.error('Error fetching user:', error);
           // Invalid token, clear it
           await SecureStore.deleteItemAsync(TOKEN_KEY);
+          setApiAuthToken(null);
           setToken(null);
         }
       }
     } catch (error) {
       console.error('Error loading auth:', error);
       await SecureStore.deleteItemAsync(TOKEN_KEY);
+      setApiAuthToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -119,20 +123,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (response.success && response.token) {
         await SecureStore.setItemAsync(TOKEN_KEY, response.token);
+        setApiAuthToken(response.token);
         setToken(response.token);
         
         // Fetch complete user profile with role
         const meResponse = await authAPI.getMe(response.token);
         if (meResponse.success && meResponse.user) {
           setUser(meResponse.user);
-      // Check if signup requires approval (pending status)
-      if (response.requiresApproval || response.user?.accountStatus === 'pending') {
-        throw new PendingApprovalError(
-          response.message || 'Your signup request has been received. Our admin team will review your application within 48 hours. You will be notified once approved.',
-          response.user
-        );
-      }
-      
           return meResponse.user;
         } else {
           setUser(response.user);
@@ -150,9 +147,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (data: SignupData): Promise<User> => {
     try {
       const response = await authAPI.signup(data);
+
+      // Pending approval: backend returns success but no token
+      if (response?.success && (response.requiresAdminApproval || response.requiresApproval || response.user?.accountStatus === 'pending')) {
+        throw new PendingApprovalError(
+          response.message || 'Your signup request has been received. Our admin team will review your application. You will be notified once approved.',
+          response.user
+        );
+      }
       
       if (response.success && response.token) {
         await SecureStore.setItemAsync(TOKEN_KEY, response.token);
+        setApiAuthToken(response.token);
         setToken(response.token);
         
         // Fetch complete user profile with role
@@ -176,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
+      setApiAuthToken(null);
       setToken(null);
       setUser(null);
     } catch (error) {

@@ -4,6 +4,34 @@ import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY = 'auth_token';
 
+let inMemoryToken: string | null = null;
+let tokenLoadPromise: Promise<string | null> | null = null;
+
+export function setApiAuthToken(token: string | null) {
+  inMemoryToken = token || null;
+}
+
+async function getAuthToken(): Promise<string | null> {
+  if (inMemoryToken) return inMemoryToken;
+
+  if (!tokenLoadPromise) {
+    tokenLoadPromise = SecureStore.getItemAsync(TOKEN_KEY)
+      .then((token) => {
+        inMemoryToken = token || null;
+        return inMemoryToken;
+      })
+      .catch((error) => {
+        console.error('Error getting token:', error);
+        return null;
+      })
+      .finally(() => {
+        tokenLoadPromise = null;
+      });
+  }
+
+  return tokenLoadPromise;
+}
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -18,8 +46,9 @@ api.interceptors.request.use(
   async (config) => {
     // Get JWT token from SecureStore
     try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      const token = await getAuthToken();
       if (token) {
+        config.headers = config.headers ?? {};
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
@@ -31,7 +60,7 @@ api.interceptors.request.use(
     const baseUrl = config.baseURL ?? '';
     const url = config.url ?? '';
     console.log('📤 Full URL:', baseUrl + url);
-    console.log('📤 Has Auth Token:', !!config.headers.Authorization);
+    console.log('📤 Has Auth Token:', !!(config.headers && (config.headers as any).Authorization));
     return config;
   },
   (error) => {
@@ -47,6 +76,25 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    const config = error.config as any;
+
+    // Retry timed-out GET requests once (Render cold start / transient network)
+    const isTimeout =
+      error?.code === 'ECONNABORTED' ||
+      (typeof error?.message === 'string' && error.message.toLowerCase().includes('timeout'));
+    const method = (config?.method || 'get').toLowerCase();
+
+    if (config && method === 'get' && isTimeout && !config.__retried) {
+      config.__retried = true;
+      config.timeout = Math.max(Number(config.timeout) || 0, 60000);
+      try {
+        return await api.request(config);
+      } catch (retryError) {
+        // fall through to normal logging
+        error = retryError;
+      }
+    }
+
     // Log detailed error for debugging
     console.error('❌ API Error Details:');
     console.error('   Error code:', error.code);
@@ -105,8 +153,8 @@ export const authAPI = {
   },
 
   // Forgot password
-  forgotPassword: async (email: string, memberId: string) => {
-    const response = await api.post('/auth/forgot-password', { email, memberId });
+  forgotPassword: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
     return response.data;
   },
 
@@ -211,6 +259,22 @@ export const adminAPI = {
   // User Management
   getUsers: async (params?: { page?: number; limit?: number; search?: string; role?: string }) => {
     const response = await api.get('/admin/users', { params });
+    return response.data;
+  },
+
+  // Pending Approvals
+  getApprovals: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/admin/approvals', { params });
+    return response.data;
+  },
+
+  approveUser: async (id: string) => {
+    const response = await api.put(`/admin/users/${id}/approve`);
+    return response.data;
+  },
+
+  rejectUser: async (id: string, reason?: string) => {
+    const response = await api.put(`/admin/users/${id}/reject`, { reason: reason || '' });
     return response.data;
   },
 

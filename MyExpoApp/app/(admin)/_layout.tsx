@@ -54,6 +54,14 @@ export default function AdminLayout() {
           tabBarIcon: ({ color }) => <MaterialIcons name="people" size={28} color={color} />,
         }}
       />
+
+      <Tabs.Screen
+        name="approvals"
+        options={{
+          title: 'Approvals',
+          tabBarIcon: ({ color }) => <MaterialIcons name="fact-check" size={28} color={color} />,
+        }}
+      />
       <Tabs.Screen
         name="manage"
         options={{

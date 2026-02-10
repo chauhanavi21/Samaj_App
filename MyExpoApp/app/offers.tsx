@@ -15,7 +15,8 @@ import { wp, hp, fontScale, padding } from '@/utils/responsive';
 import { contentAPI } from '@/services/api';
 
 interface Offer {
-  _id: string;
+  id?: string;
+  _id?: string;
   title: string;
   description: string;
   badgeText: string;
@@ -89,8 +90,10 @@ export default function OffersScreen() {
             </View>
           )}
 
-          {offers.map((offer) => (
-            <View key={offer._id} style={styles.offerCard}>
+          {offers.map((offer, index) => {
+            const offerKey = (offer._id || offer.id || `${offer.title}-${index}`).toString();
+            return (
+            <View key={offerKey} style={styles.offerCard}>
               {/* Badge */}
               <View style={[styles.badge, { backgroundColor: offer.badgeColor }]}>
                 <Text style={styles.badgeText}>{offer.badgeText}</Text>
@@ -114,7 +117,8 @@ export default function OffersScreen() {
                 <Text style={styles.infoText}>Category: {offer.category}</Text>
               </View>
             </View>
-          ))}
+            );
+          })}
 
           {!loading && hasNextPage && (
             <TouchableOpacity onPress={onLoadMore} style={styles.loadMoreButton}>

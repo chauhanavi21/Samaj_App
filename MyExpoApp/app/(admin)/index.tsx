@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,11 +21,15 @@ export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [error, setError] = useState('');
 
+  const inFlightRef = useRef(false);
+
   useEffect(() => {
     loadDashboard();
   }, []);
 
   const loadDashboard = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       setError('');
       const response = await adminAPI.getDashboard();
@@ -36,6 +40,7 @@ export default function AdminDashboard() {
       console.error('Dashboard error:', err);
       setError(err.response?.data?.message || 'Failed to load dashboard');
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -116,6 +121,24 @@ export default function AdminDashboard() {
                 <MaterialIcons name="account-tree" size={40} color="#FFF" />
                 <Text style={styles.statValue}>{dashboardData?.totals?.familyTreeEntries || 0}</Text>
                 <Text style={styles.statLabel}>Family Trees</Text>
+              </View>
+            </View>
+
+            {/* Pending approvals */}
+            <View style={styles.section}>
+              <View style={styles.pendingRow}>
+                <View style={styles.pendingLeft}>
+                  <Text style={styles.sectionTitle}>Pending Approvals</Text>
+                  <Text style={styles.pendingCount}>
+                    {dashboardData?.totals?.pendingApprovals || 0} pending
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.push('/(admin)/approvals')}
+                  style={styles.pendingButton}
+                >
+                  <Text style={styles.pendingButtonText}>View</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -214,6 +237,31 @@ const styles = StyleSheet.create({
     fontSize: fontScale(14),
     color: '#FFFFFF',
     opacity: 0.8,
+  pendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pendingLeft: {
+    flex: 1,
+  },
+  pendingCount: {
+    marginTop: hp(0.5),
+    fontSize: fontScale(13),
+    color: '#666',
+  },
+  pendingButton: {
+    backgroundColor: '#1A3A69',
+    paddingHorizontal: padding.md,
+    paddingVertical: hp(1),
+    borderRadius: 10,
+    marginLeft: wp(3),
+  },
+  pendingButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: fontScale(13),
+  },
     marginTop: hp(0.5),
   },
   logoutButton: {

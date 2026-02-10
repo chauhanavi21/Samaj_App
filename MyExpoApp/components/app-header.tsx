@@ -14,7 +14,14 @@ export function AppHeader({ showBack = true }: { showBack?: boolean }) {
 
   return (
     <>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + hp(1.5), hp(5)) }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + (Platform.OS === 'android' ? hp(1) : hp(1.5)),
+          },
+        ]}
+      >
         {showBack ? (
           <>
             <TouchableOpacity onPress={() => router.back()}>
@@ -62,6 +69,14 @@ export function AppHeader({ showBack = true }: { showBack?: boolean }) {
                   <Text style={styles.menuItemText}>Home</Text>
                 </TouchableOpacity>
               </Link>
+
+              {isAuthenticated && user?.role === 'admin' && (
+                <Link href="/(admin)" asChild>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+                    <Text style={styles.menuItemText}>Admin Dashboard</Text>
+                  </TouchableOpacity>
+                </Link>
+              )}
 
               <Link href="/about-us" asChild>
                 <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>

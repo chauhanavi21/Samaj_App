@@ -6,9 +6,12 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TabBarWithSponsorTicker } from '@/components/tab-bar-with-sponsor-ticker';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   return (
     <Tabs
@@ -30,6 +33,7 @@ export default function TabLayout() {
         options={{
           title: 'Family Tree',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.3.fill" color={color} />,
+          href: isAdmin ? null : undefined,
         }}
       />
     </Tabs>

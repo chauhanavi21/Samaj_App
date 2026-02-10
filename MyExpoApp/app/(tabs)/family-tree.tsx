@@ -22,7 +22,8 @@ interface Child {
 }
 
 interface FamilyTreeEntry {
-  _id: string;
+  id?: string;
+  _id?: string;
   personName: string;
   personPhone?: string;
   spouseName?: string;
@@ -31,12 +32,7 @@ interface FamilyTreeEntry {
   children: Child[];
   address?: string;
   createdAt: string;
-  createdBy?: {
-    _id: string;
-    name: string;
-    email: string;
-    memberId?: string;
-  };
+  createdBy?: any;
 }
 
 export default function FamilyTreeScreen() {
@@ -119,18 +115,32 @@ export default function FamilyTreeScreen() {
     );
   };
 
-  const renderEntry = ({ item }: { item: FamilyTreeEntry }) => (
-    <View style={styles.card}>
+  const renderEntry = ({ item }: { item: FamilyTreeEntry }) => {
+    const entryId = (item.id || item._id || '').toString();
+    return (
+      <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.personName}>{item.personName}</Text>
         <View style={styles.cardActions}>
           <TouchableOpacity
-            onPress={() => router.push(`/family-tree/edit/${item._id}`)}
+            onPress={() => {
+              if (!entryId) {
+                Alert.alert('Error', 'Missing entry id');
+                return;
+              }
+              router.push(`/family-tree/edit/${entryId}`);
+            }}
             style={styles.iconButton}>
             <IconSymbol name="pencil" size={22} color="#007AFF" />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => handleDelete(item._id, item.personName)}
+            onPress={() => {
+              if (!entryId) {
+                Alert.alert('Error', 'Missing entry id');
+                return;
+              }
+              handleDelete(entryId, item.personName);
+            }}
             style={styles.iconButton}>
             <IconSymbol name="trash" size={22} color="#FF3B30" />
           </TouchableOpacity>
@@ -185,8 +195,9 @@ export default function FamilyTreeScreen() {
       {item.address && (
         <Text style={styles.addressText}>{item.address}</Text>
       )}
-    </View>
-  );
+      </View>
+    );
+  };
 
   if (authLoading || loading) {
     return (
@@ -225,7 +236,7 @@ export default function FamilyTreeScreen() {
         <FlatList
           data={entries}
           renderItem={renderEntry}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item, index) => (item.id || item._id || String(index)).toString()}
           contentContainerStyle={styles.listContainer}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

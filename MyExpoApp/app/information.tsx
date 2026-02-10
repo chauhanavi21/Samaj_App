@@ -5,54 +5,55 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { informationAPI } from '../services/api';
+import { Stack, useRouter } from 'expo-router';
+import { searchInformation, InformationRecord } from '../services/informationService';
+import { AppHeader } from '@/components/app-header';
 
-type InfoItem = {
-  _id: string;
-  firstName?: string | null;
-  middleName?: string | null;
-  lastName?: string | null;
-  fullName?: string | null;
-  memberId?: string | null;
-  number?: string | null;
-};
+/*
+ * Information search screen
+ *
+ * Users can type a person's name (first, middle, last or any combination)
+ * into the search box and press the Search button or the return key.
+ * Results display the full name (falling back to concatenated parts),
+ * along with the member ID and phone number. Tapping a card navigates
+ * to the detail screen for that record.
+ */
 
 export default function InformationScreen() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<InfoItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
   const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<InformationRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
 
   const trimmedQuery = useMemo(() => query.trim(), [query]);
 
-  const getDisplayName = (item: InfoItem) =>
-    item.fullName ||
-    [item.firstName, item.middleName, item.lastName].filter(Boolean).join(' ').trim() ||
-    'Unnamed';
+  const getDisplayName = (item: InformationRecord) => {
+    return (
+      item.fullName ||
+      [item.firstName, item.middleName, item.lastName].filter(Boolean).join(' ').trim() ||
+      'Unnamed'
+    );
+  };
 
   async function handleSearch() {
     if (!trimmedQuery) {
       setResults([]);
-      setHasSearched(false);
+      setSearched(false);
       return;
     }
-
     setLoading(true);
-    setHasSearched(true);
-
+    setSearched(true);
     try {
-      const res = await informationAPI.search(trimmedQuery);
-      setResults(Array.isArray(res?.data) ? res.data : []);
-    } catch (error) {
-      console.error('Search failed', error);
+      const docs = await searchInformation(trimmedQuery);
+      setResults(docs);
+    } catch (err) {
+      console.error('Search error:', err);
       setResults([]);
     } finally {
       setLoading(false);
@@ -60,17 +61,15 @@ export default function InformationScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.container}>
+          <AppHeader showBack={true} />
           <Text style={styles.title}>Information</Text>
           <Text style={styles.subtitle}>
-            Search by first name, full name, or full sequence (first middle last)
+            Search by first name, full name, or any combination of names
           </Text>
-
           <View style={styles.searchCard}>
             <TextInput
               placeholder="Type name here..."
@@ -84,7 +83,6 @@ export default function InformationScreen() {
               autoCorrect={false}
               blurOnSubmit={false}
             />
-
             <Pressable
               style={[styles.searchButton, !trimmedQuery && styles.searchButtonDisabled]}
               onPress={handleSearch}
@@ -93,19 +91,18 @@ export default function InformationScreen() {
               <Text style={styles.searchButtonText}>Search</Text>
             </Pressable>
           </View>
-
           {loading ? (
             <ActivityIndicator size="large" style={styles.loader} color="#1A3A69" />
           ) : (
             <FlatList
               data={results}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item) => item.id}
               keyboardShouldPersistTaps="always"
               contentContainerStyle={styles.listContent}
               renderItem={({ item }) => (
                 <Pressable
                   style={styles.resultCard}
-                  onPress={() => router.push(`/information/${item._id}`)}
+                  onPress={() => router.push(`/information/${item.id}`)}
                 >
                   <Text style={styles.resultName}>{getDisplayName(item)}</Text>
                   <View style={styles.metaRow}>
@@ -119,27 +116,21 @@ export default function InformationScreen() {
                 </Pressable>
               )}
               ListEmptyComponent={
-                hasSearched ? (
+                searched ? (
                   <Text style={styles.emptyText}>No results found.</Text>
                 ) : (
-                  <Text style={styles.hintText}>
-                    Start typing a name and tap Search.
-                  </Text>
+                  <Text style={styles.hintText}>Start typing a name and tap Search.</Text>
                 )
               }
             />
           )}
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F5F5F0',
-  },
   flex: {
     flex: 1,
   },

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,8 @@ export default function AdminManage() {
   const [form, setForm] = useState<any>({});
 
   const title = useMemo(() => TYPE_LABEL[type], [type]);
+
+  const inFlightKeyRef = useRef<string | null>(null);
 
   const resetForm = (nextType: ContentType, existing?: any) => {
     if (nextType === 'committee') {
@@ -93,6 +95,10 @@ export default function AdminManage() {
   };
 
   const fetchList = async (nextPage: number, mode: 'replace' | 'append') => {
+    const flightKey = `${type}:${nextPage}:${mode}`;
+    if (inFlightKeyRef.current === flightKey) return;
+    inFlightKeyRef.current = flightKey;
+
     try {
       let response: any;
 
@@ -112,6 +118,9 @@ export default function AdminManage() {
       console.error('Admin manage load error:', err?.response?.data || err?.message || err);
       Alert.alert('Error', err?.response?.data?.message || 'Failed to load content');
     } finally {
+      if (inFlightKeyRef.current === flightKey) {
+        inFlightKeyRef.current = null;
+      }
       setLoading(false);
       setRefreshing(false);
     }
@@ -145,6 +154,7 @@ export default function AdminManage() {
   };
 
   const confirmDelete = (item: any) => {
+    const itemId = (item?.id || item?._id || '').toString();
     Alert.alert('Delete', 'Are you sure you want to delete this item?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -152,11 +162,16 @@ export default function AdminManage() {
         style: 'destructive',
         onPress: async () => {
           try {
-            if (type === 'committee') await adminAPI.deleteCommitteeMember(item._id);
-            else if (type === 'sponsors') await adminAPI.deleteSponsor(item._id);
-            else if (type === 'offers') await adminAPI.deleteOffer(item._id);
-            else if (type === 'events') await adminAPI.deleteEvent(item._id);
-            else await adminAPI.deletePlace(item._id);
+            if (!itemId) {
+              Alert.alert('Error', 'Missing item id');
+              return;
+            }
+
+            if (type === 'committee') await adminAPI.deleteCommitteeMember(itemId);
+            else if (type === 'sponsors') await adminAPI.deleteSponsor(itemId);
+            else if (type === 'offers') await adminAPI.deleteOffer(itemId);
+            else if (type === 'events') await adminAPI.deleteEvent(itemId);
+            else await adminAPI.deletePlace(itemId);
 
             fetchList(1, 'replace');
           } catch (err: any) {
@@ -169,40 +184,56 @@ export default function AdminManage() {
 
   const save = async () => {
     try {
+      const editingId = (editingItem?.id || editingItem?._id || '').toString();
       if (type === 'committee') {
         if (!form.nameEn || !form.nameHi || !form.phone || !form.city) {
           Alert.alert('Error', 'Please fill all fields');
           return;
         }
-        if (editingItem) await adminAPI.updateCommitteeMember(editingItem._id, form);
+        if (editingItem) {
+          if (!editingId) throw new Error('Missing item id');
+          await adminAPI.updateCommitteeMember(editingId, form);
+        }
         else await adminAPI.createCommitteeMember(form);
       } else if (type === 'sponsors') {
         if (!form.name || !form.amount || !form.phone) {
           Alert.alert('Error', 'Please fill all fields');
           return;
         }
-        if (editingItem) await adminAPI.updateSponsor(editingItem._id, form);
+        if (editingItem) {
+          if (!editingId) throw new Error('Missing item id');
+          await adminAPI.updateSponsor(editingId, form);
+        }
         else await adminAPI.createSponsor(form);
       } else if (type === 'offers') {
         if (!form.title || !form.description || !form.category || !form.validityText || !form.badgeText) {
           Alert.alert('Error', 'Please fill all fields');
           return;
         }
-        if (editingItem) await adminAPI.updateOffer(editingItem._id, form);
+        if (editingItem) {
+          if (!editingId) throw new Error('Missing item id');
+          await adminAPI.updateOffer(editingId, form);
+        }
         else await adminAPI.createOffer(form);
       } else if (type === 'events') {
         if (!form.category || !form.title || !form.date || !form.time || !form.location || !form.description) {
           Alert.alert('Error', 'Please fill all fields');
           return;
         }
-        if (editingItem) await adminAPI.updateEvent(editingItem._id, form);
+        if (editingItem) {
+          if (!editingId) throw new Error('Missing item id');
+          await adminAPI.updateEvent(editingId, form);
+        }
         else await adminAPI.createEvent(form);
       } else {
         if (!form.name || !form.address) {
           Alert.alert('Error', 'Please fill all fields');
           return;
         }
-        if (editingItem) await adminAPI.updatePlace(editingItem._id, form);
+        if (editingItem) {
+          if (!editingId) throw new Error('Missing item id');
+          await adminAPI.updatePlace(editingId, form);
+        }
         else await adminAPI.createPlace(form);
       }
 
@@ -422,8 +453,10 @@ export default function AdminManage() {
           </View>
         )}
 
-        {!loading && items.map((item) => (
-          <View key={item._id} style={styles.itemCard}>
+        {!loading && items.map((item, index) => {
+          const itemKey = (item?.id || item?._id || `${type}-${index}`).toString();
+          return (
+          <View key={itemKey} style={styles.itemCard}>
             <View style={styles.itemInfo}>{renderItemSummary(item)}</View>
             <View style={styles.itemActions}>
               <TouchableOpacity onPress={() => startEdit(item)} style={styles.actionButton}>
@@ -434,7 +467,8 @@ export default function AdminManage() {
               </TouchableOpacity>
             </View>
           </View>
-        ))}
+          );
+        })}
 
         {!loading && items.length === 0 && (
           <View style={styles.emptyContainer}>

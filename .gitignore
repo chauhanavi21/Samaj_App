@@ -122,3 +122,17 @@ out/
 # Keep general docs but ignore any that might have keys/secrets
 # *_PRIVATE.md
 # *_SECRET.md
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+.env
+firebaseConfig.ts  # optionally ignore if you keep API keys private locally
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+.env
+firebaseConfig.ts  # optionally ignore if you keep API keys private locally
