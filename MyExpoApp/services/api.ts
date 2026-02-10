@@ -105,6 +105,16 @@ api.interceptors.response.use(
       console.error('   Response status:', error.response.status);
       console.error('   Response data:', JSON.stringify(error.response.data, null, 2));
       console.error('   Request URL:', error.config?.url);
+
+      // If token is stale (e.g., user deleted in backend), clear it so app can recover.
+      if (error.response.status === 401) {
+        try {
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+        } catch (e) {
+          // ignore
+        }
+        inMemoryToken = null;
+      }
     } else if (error.request) {
       console.error('   Request was made but no response received');
       

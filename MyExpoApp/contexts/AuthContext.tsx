@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await SecureStore.deleteItemAsync(TOKEN_KEY);
             setApiAuthToken(null);
             setToken(null);
+            setUser(null);
           }
         } catch (error) {
           console.error('Error fetching user:', error);
@@ -88,12 +89,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await SecureStore.deleteItemAsync(TOKEN_KEY);
           setApiAuthToken(null);
           setToken(null);
+          setUser(null);
         }
       }
     } catch (error) {
       console.error('Error loading auth:', error);
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       setApiAuthToken(null);
+      setToken(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -201,8 +205,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.user) {
         setUser(response.user);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing user:', error);
+
+      if (error?.response?.status === 401) {
+        await logout();
+      }
     }
   };
 
