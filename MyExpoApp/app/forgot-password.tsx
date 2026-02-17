@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { AppHeader } from '@/components/app-header';
-import { authAPI } from '@/services/api';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/firebaseConfig';
 import { wp, hp, fontScale, padding } from '@/utils/responsive';
 
 export default function ForgotPasswordScreen() {
@@ -28,12 +29,13 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      const response = await authAPI.forgotPassword(trimmedEmail);
-      Alert.alert('Done', response?.message || 'If an account exists, a reset link will be sent.', [
+      await sendPasswordResetEmail(auth, trimmedEmail);
+      Alert.alert('Done', 'Password reset email sent. Please check your inbox.', [
         { text: 'OK', onPress: () => router.replace('/login') },
       ]);
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.message || err?.message || 'Failed to process request');
+      const msg = err?.message || 'Failed to send reset email';
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
     }

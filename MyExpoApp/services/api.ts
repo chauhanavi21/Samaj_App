@@ -1,11 +1,8 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/config/api';
-import * as SecureStore from 'expo-secure-store';
-
-const TOKEN_KEY = 'auth_token';
+import { auth as firebaseAuth } from '@/firebaseConfig';
 
 let inMemoryToken: string | null = null;
-let tokenLoadPromise: Promise<string | null> | null = null;
 
 export function setApiAuthToken(token: string | null) {
   inMemoryToken = token || null;
@@ -14,22 +11,16 @@ export function setApiAuthToken(token: string | null) {
 async function getAuthToken(): Promise<string | null> {
   if (inMemoryToken) return inMemoryToken;
 
-  if (!tokenLoadPromise) {
-    tokenLoadPromise = SecureStore.getItemAsync(TOKEN_KEY)
-      .then((token) => {
-        inMemoryToken = token || null;
-        return inMemoryToken;
-      })
-      .catch((error) => {
-        console.error('Error getting token:', error);
-        return null;
-      })
-      .finally(() => {
-        tokenLoadPromise = null;
-      });
+  try {
+    const currentUser = firebaseAuth.currentUser;
+    if (!currentUser) return null;
+    const token = await currentUser.getIdToken();
+    inMemoryToken = token;
+    return token;
+  } catch (error) {
+    console.error('Error getting Firebase ID token:', error);
+    return null;
   }
-
-  return tokenLoadPromise;
 }
 
 // Create axios instance
@@ -41,10 +32,10 @@ const api = axios.create({
   timeout: 30000,
 });
 
-// Add JWT token to requests
+// Add Firebase ID token to requests
 api.interceptors.request.use(
   async (config) => {
-    // Get JWT token from SecureStore
+    // Get Firebase ID token
     try {
       const token = await getAuthToken();
       if (token) {
@@ -106,13 +97,8 @@ api.interceptors.response.use(
       console.error('   Response data:', JSON.stringify(error.response.data, null, 2));
       console.error('   Request URL:', error.config?.url);
 
-      // If token is stale (e.g., user deleted in backend), clear it so app can recover.
+      // If token is stale, clear cached token so app can recover.
       if (error.response.status === 401) {
-        try {
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
-        } catch (e) {
-          // ignore
-        }
         inMemoryToken = null;
       }
     } else if (error.request) {
@@ -150,9 +136,8 @@ export const authAPI = {
   },
 
   // Get current user
-  getMe: async (token?: string) => {
-    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-    const response = await api.get('/auth/me', config);
+  getMe: async () => {
+    const response = await api.get('/auth/me');
     return response.data;
   },
 
@@ -162,20 +147,6 @@ export const authAPI = {
     return response.data;
   },
 
-  // Forgot password
-  forgotPassword: async (email: string) => {
-    const response = await api.post('/auth/forgot-password', { email });
-    return response.data;
-  },
-
-  // Reset password
-  resetPassword: async (resetToken: string, password: string, confirmPassword: string) => {
-    const response = await api.post(`/auth/reset-password/${resetToken}`, {
-      password,
-      confirmPassword,
-    });
-    return response.data;
-  },
 };
 
 // Information API functions

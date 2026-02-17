@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert, InteractionManager } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +15,17 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   useEffect(() => {
-    Alert.alert('Thank you Drishti nahata for Sponsring the app');
+    // Mandatory sponsor popup, scheduled after initial render to avoid blocking startup.
+    const task = InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        Alert.alert('Thank you Drishti nahata for Sponsring the app');
+      }, 250);
+    });
+
+    return () => {
+      // @ts-expect-error - cancel exists at runtime
+      task?.cancel?.();
+    };
   }, []);
 
   return (

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { onIdTokenChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { authAPI, setApiAuthToken } from '@/services/api';
+import { auth as firebaseAuth } from '@/firebaseConfig';
 
 interface User {
   id: string;
@@ -52,96 +53,121 @@ interface SignupData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = 'auth_token';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load token and user on mount
   useEffect(() => {
-    loadStoredAuth();
-  }, []);
-
-  const loadStoredAuth = async () => {
-    try {
-      const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-      
-      if (storedToken) {
-        setApiAuthToken(storedToken);
-        setToken(storedToken);
-        // Fetch user data with role from /api/auth/me
-        try {
-          const response = await authAPI.getMe(storedToken);
-          if (response.success && response.user) {
-            setUser(response.user);
-          } else {
-            // Invalid token, clear it
-            await SecureStore.deleteItemAsync(TOKEN_KEY);
-            setApiAuthToken(null);
-            setToken(null);
-            setUser(null);
-          }
-        } catch (error) {
-          console.error('Error fetching user:', error);
-          // Invalid token, clear it
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
+    const unsubscribe = onIdTokenChanged(firebaseAuth, async (fbUser) => {
+      try {
+        if (!fbUser) {
           setApiAuthToken(null);
           setToken(null);
           setUser(null);
+          return;
         }
+
+        const idToken = await fbUser.getIdToken();
+        setApiAuthToken(idToken);
+        setToken(idToken);
+
+        const response = await authAPI.getMe();
+        if (response?.success && response?.user) {
+          // If the account isn't approved, keep Firebase signed out so the app doesn't treat it as logged in.
+          if (response.user.accountStatus === 'pending') {
+            await signOut(firebaseAuth);
+            setApiAuthToken(null);
+            setToken(null);
+            setUser(null);
+            return;
+          }
+
+          if (response.user.accountStatus === 'rejected') {
+            await signOut(firebaseAuth);
+            setApiAuthToken(null);
+            setToken(null);
+            setUser(null);
+            return;
+          }
+
+          setUser(response.user);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error syncing auth state:', error);
+        setApiAuthToken(null);
+        setToken(null);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading auth:', error);
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      setApiAuthToken(null);
-      setToken(null);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string): Promise<User> => {
     try {
-      const response = await authAPI.login(email, password);
-      
-      // Check for pending or rejected status
-      if (!response.success) {
-        if (response.accountStatus === 'pending' || response.requiresApproval) {
-          throw new PendingApprovalError(
-            response.message || 'Your account is pending admin approval. You will be notified within 48 hours.'
-          );
-        }
-        
-        if (response.accountStatus === 'rejected') {
-          throw new AccountRejectedError(
-            response.message || 'Your account registration was not approved.',
-            response.rejectionReason
-          );
-        }
-        
-        throw new Error(response.message || 'Login failed');
-      }
-      
-      if (response.success && response.token) {
-        await SecureStore.setItemAsync(TOKEN_KEY, response.token);
-        setApiAuthToken(response.token);
-        setToken(response.token);
-        
-        // Fetch complete user profile with role
-        const meResponse = await authAPI.getMe(response.token);
-        if (meResponse.success && meResponse.user) {
-          setUser(meResponse.user);
-          return meResponse.user;
+      const normalizedEmail = String(email ?? '').trim().toLowerCase();
+
+      try {
+        await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, password);
+      } catch (err: any) {
+        const code = String(err?.code || '');
+
+        // Migration path: if Firebase user doesn't exist yet, ask backend to migrate
+        // the legacy Firestore account (bcrypt) into Firebase Auth, then retry.
+        if (code === 'auth/user-not-found') {
+          const migrate = await authAPI.login(normalizedEmail, password);
+          if (!migrate?.success) {
+            if (migrate?.accountStatus === 'pending' || migrate?.requiresApproval) {
+              throw new PendingApprovalError(
+                migrate?.message || 'Your account is pending admin approval. You will be notified within 48 hours.'
+              );
+            }
+
+            if (migrate?.accountStatus === 'rejected') {
+              throw new AccountRejectedError(
+                migrate?.message || 'Your account registration was not approved.',
+                migrate?.rejectionReason
+              );
+            }
+
+            throw new Error(migrate?.message || 'Login failed');
+          }
+
+          await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, password);
         } else {
-          setUser(response.user);
-          return response.user;
+          throw err;
         }
-      } else {
-        throw new Error(response.message || 'Login failed');
       }
+
+      const meResponse = await authAPI.getMe();
+      if (meResponse?.success && meResponse?.user) {
+        if (meResponse.user.accountStatus === 'pending') {
+          await signOut(firebaseAuth);
+          throw new PendingApprovalError(
+            'Your account is pending admin approval. You will be notified within 48 hours.',
+            meResponse.user
+          );
+        }
+
+        if (meResponse.user.accountStatus === 'rejected') {
+          await signOut(firebaseAuth);
+          throw new AccountRejectedError(
+            'Your account registration was not approved.',
+            (meResponse.user as any)?.rejectionReason
+          );
+        }
+
+        setUser(meResponse.user);
+        return meResponse.user;
+      }
+
+      await signOut(firebaseAuth);
+      throw new Error(meResponse?.message || 'Login failed');
     } catch (error: any) {
       console.error('Login error:', error);
       throw error;
@@ -160,23 +186,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
       
-      if (response.success && response.token) {
-        await SecureStore.setItemAsync(TOKEN_KEY, response.token);
-        setApiAuthToken(response.token);
-        setToken(response.token);
-        
-        // Fetch complete user profile with role
-        const meResponse = await authAPI.getMe(response.token);
-        if (meResponse.success && meResponse.user) {
-          setUser(meResponse.user);
-          return meResponse.user;
-        } else {
-          setUser(response.user);
-          return response.user;
+      // Approved signup: Firebase user was created server-side; sign in client-side.
+      const normalizedEmail = String(data.email ?? '').trim().toLowerCase();
+      await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, data.password);
+
+      const meResponse = await authAPI.getMe();
+      if (meResponse?.success && meResponse?.user) {
+        if (meResponse.user.accountStatus === 'pending') {
+          await signOut(firebaseAuth);
+          throw new PendingApprovalError(
+            meResponse?.message || 'Your signup request has been received. Our admin team will review your application. You will be notified once approved.',
+            meResponse.user
+          );
         }
-      } else {
-        throw new Error(response.message || 'Signup failed');
+
+        if (meResponse.user.accountStatus === 'rejected') {
+          await signOut(firebaseAuth);
+          throw new AccountRejectedError(
+            meResponse?.message || 'Your account registration was not approved.',
+            (meResponse.user as any)?.rejectionReason
+          );
+        }
+
+        setUser(meResponse.user);
+        return meResponse.user;
       }
+
+      await signOut(firebaseAuth);
+      throw new Error(meResponse?.message || response?.message || 'Signup failed');
     } catch (error: any) {
       console.error('Signup error:', error);
       throw error;
@@ -185,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await signOut(firebaseAuth);
       setApiAuthToken(null);
       setToken(null);
       setUser(null);
@@ -200,8 +237,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      if (!token) return;
-      const response = await authAPI.getMe(token);
+      if (!firebaseAuth.currentUser) return;
+      const response = await authAPI.getMe();
       if (response.success && response.user) {
         setUser(response.user);
       }
@@ -218,7 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     token,
     isLoading,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: !!user && !!token && user.accountStatus === 'approved',
     isAdmin: user?.role === 'admin',
     login,
     signup,
