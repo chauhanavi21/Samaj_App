@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Migration path: if Firebase user doesn't exist yet, ask backend to migrate
         // the legacy Firestore account (bcrypt) into Firebase Auth, then retry.
-        if (code === 'auth/user-not-found') {
+        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
           const migrate = await authAPI.login(normalizedEmail, password);
           if (!migrate?.success) {
             if (migrate?.accountStatus === 'pending' || migrate?.requiresApproval) {
