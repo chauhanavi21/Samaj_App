@@ -24,13 +24,20 @@ interface Child {
 interface FamilyTreeEntry {
   id?: string;
   _id?: string;
+  memberId?: string;
   personName: string;
   personPhone?: string;
+  personDateOfBirth?: string | null;
+  personOccupation?: string;
   spouseName?: string;
+  spousePhone?: string;
   fatherName?: string;
+  fatherPhone?: string;
   motherName?: string;
+  motherPhone?: string;
   children: Child[];
   address?: string;
+  notes?: string;
   createdAt: string;
   createdBy?: any;
 }
@@ -117,6 +124,11 @@ export default function FamilyTreeScreen() {
 
   const renderEntry = ({ item }: { item: FamilyTreeEntry }) => {
     const entryId = (item.id || item._id || '').toString();
+    const display = (value: any) => {
+      const trimmed = String(value ?? '').trim();
+      return trimmed ? trimmed : 'Not provided';
+    };
+
     return (
       <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -147,54 +159,82 @@ export default function FamilyTreeScreen() {
         </View>
       </View>
 
-      {item.personPhone && (
-        <Text style={styles.detailText}>Phone: {item.personPhone}</Text>
-      )}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Phone:</Text>
+        <Text style={styles.value}>{display(item.personPhone)}</Text>
+      </View>
 
-      {item.createdBy?.memberId && (
-        <Text style={styles.detailText}>Member ID: {item.createdBy.memberId}</Text>
-      )}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Member ID:</Text>
+        <Text style={styles.value}>{display(item.memberId)}</Text>
+      </View>
 
-      {(item.spouseName || item.fatherName || item.motherName || (item.children && item.children.length > 0)) && (
-        <View style={styles.divider} />
-      )}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>DOB:</Text>
+        <Text style={styles.value}>{display(item.personDateOfBirth)}</Text>
+      </View>
 
-      {item.spouseName && (
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Spouse:</Text>
-          <Text style={styles.value}>{item.spouseName}</Text>
-        </View>
-      )}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Occupation:</Text>
+        <Text style={styles.value}>{display(item.personOccupation)}</Text>
+      </View>
 
-      {item.fatherName && (
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Father:</Text>
-          <Text style={styles.value}>{item.fatherName}</Text>
-        </View>
-      )}
+      <View style={styles.divider} />
 
-      {item.motherName && (
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Mother:</Text>
-          <Text style={styles.value}>{item.motherName}</Text>
-        </View>
-      )}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Spouse Name:</Text>
+        <Text style={styles.value}>{display(item.spouseName)}</Text>
+      </View>
 
-      {item.children && item.children.length > 0 && (
-        <View style={styles.childrenSection}>
-          <Text style={styles.sectionTitle}>Children</Text>
-          {item.children.map((child, index) => (
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Spouse Phone:</Text>
+        <Text style={styles.value}>{display(item.spousePhone)}</Text>
+      </View>
+
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Father Name:</Text>
+        <Text style={styles.value}>{display(item.fatherName)}</Text>
+      </View>
+
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Father Phone:</Text>
+        <Text style={styles.value}>{display(item.fatherPhone)}</Text>
+      </View>
+
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Mother Name:</Text>
+        <Text style={styles.value}>{display(item.motherName)}</Text>
+      </View>
+
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Mother Phone:</Text>
+        <Text style={styles.value}>{display(item.motherPhone)}</Text>
+      </View>
+
+      <View style={styles.childrenSection}>
+        <Text style={styles.sectionTitle}>Children</Text>
+        {item.children && item.children.length > 0 ? (
+          item.children.map((child, index) => (
             <Text key={index} style={styles.childText}>
-              • {child.name}
-              {child.gender && ` (${child.gender})`}
+              • {display(child.name)}
+              {child.gender ? ` (${child.gender})` : ''}
+              {child.dateOfBirth ? ` • DOB: ${child.dateOfBirth}` : ''}
             </Text>
-          ))}
-        </View>
-      )}
+          ))
+        ) : (
+          <Text style={styles.childText}>No children provided</Text>
+        )}
+      </View>
 
-      {item.address && (
-        <Text style={styles.addressText}>{item.address}</Text>
-      )}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Address:</Text>
+        <Text style={styles.value}>{display(item.address)}</Text>
+      </View>
+
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Notes:</Text>
+        <Text style={styles.value}>{display(item.notes)}</Text>
+      </View>
       </View>
     );
   };

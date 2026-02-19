@@ -47,7 +47,6 @@ export default function AdminManage() {
     if (nextType === 'committee') {
       setForm({
         nameEn: existing?.nameEn ?? '',
-        nameHi: existing?.nameHi ?? '',
         phone: existing?.phone ?? '',
         city: existing?.city ?? '',
       });
@@ -186,7 +185,7 @@ export default function AdminManage() {
     try {
       const editingId = (editingItem?.id || editingItem?._id || '').toString();
       if (type === 'committee') {
-        if (!form.nameEn || !form.nameHi || !form.phone || !form.city) {
+        if (!form.nameEn || !form.phone || !form.city) {
           Alert.alert('Error', 'Please fill all fields');
           return;
         }
@@ -248,7 +247,7 @@ export default function AdminManage() {
     if (type === 'committee') {
       return (
         <>
-          <Text style={styles.itemTitle}>{item.nameEn} ({item.nameHi})</Text>
+          <Text style={styles.itemTitle}>{item.nameEn}</Text>
           <Text style={styles.itemSubtitle}>{item.phone} • {item.city}</Text>
         </>
       );
@@ -295,9 +294,6 @@ export default function AdminManage() {
         <>
           <Text style={styles.inputLabel}>Name (English)*</Text>
           <TextInput style={styles.input} value={form.nameEn} onChangeText={(t) => setForm({ ...form, nameEn: t })} />
-
-          <Text style={styles.inputLabel}>Name (Hindi)*</Text>
-          <TextInput style={styles.input} value={form.nameHi} onChangeText={(t) => setForm({ ...form, nameHi: t })} />
 
           <Text style={styles.inputLabel}>Phone*</Text>
           <TextInput style={styles.input} value={form.phone} onChangeText={(t) => setForm({ ...form, phone: t })} />

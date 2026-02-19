@@ -71,7 +71,7 @@ export default function CommitteeScreen() {
         >
         {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.mainTitle}>Thali Yuva Sangh Committee (समिति सदस्य)</Text>
+          <Text style={styles.mainTitle}>Thali Yuva Sangh Committee</Text>
           <Text style={styles.titleDescription}>
             Our dedicated team working towards the betterment of Thali.
           </Text>
@@ -86,8 +86,8 @@ export default function CommitteeScreen() {
           )}
 
           {!loading && members.map((member, index) => (
-            <View key={member._id || String(index)} style={styles.memberCard}>
-              <Text style={styles.memberName}>{member.nameEn} ({member.nameHi})</Text>
+            <View key={(member.id || member._id || String(index)).toString()} style={styles.memberCard}>
+              <Text style={styles.memberName}>{member.nameEn}</Text>
               <Pressable onPress={() => handlePhone(member.phone)} style={styles.contactRow}>
                 <MaterialIcons name="phone" size={20} color="#FF8C00" />
                 <Text style={styles.contactText}>{member.phone}</Text>

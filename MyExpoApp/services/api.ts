@@ -206,6 +206,10 @@ export const contentAPI = {
     const response = await api.get('/content/committee', { params });
     return response.data;
   },
+  getGallery: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/content/gallery', { params });
+    return response.data;
+  },
   getSponsors: async (params?: { page?: number; limit?: number; search?: string }) => {
     const response = await api.get('/content/sponsors', { params });
     return response.data;
@@ -373,6 +377,24 @@ export const adminAPI = {
   },
   deletePlace: async (id: string) => {
     const response = await api.delete(`/admin/content/places/${id}`);
+    return response.data;
+  },
+
+  // Gallery management
+  getGalleryImages: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const response = await api.get('/admin/content/gallery', { params });
+    return response.data;
+  },
+  createGalleryImage: async (data: { imageUrl: string; title?: string; order?: number; isActive?: boolean }) => {
+    const response = await api.post('/admin/content/gallery', data);
+    return response.data;
+  },
+  updateGalleryImage: async (id: string, data: { imageUrl?: string; title?: string; order?: number; isActive?: boolean }) => {
+    const response = await api.put(`/admin/content/gallery/${id}`, data);
+    return response.data;
+  },
+  deleteGalleryImage: async (id: string) => {
+    const response = await api.delete(`/admin/content/gallery/${id}`);
     return response.data;
   },
 
